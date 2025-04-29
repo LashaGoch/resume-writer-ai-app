@@ -4,3 +4,4 @@ crewai==0.24.8
 chromadb==0.4.24
 python-dotenv
 openai
+rich==13.7.1
