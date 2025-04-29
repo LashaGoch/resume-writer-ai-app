@@ -1,4 +1,5 @@
 flask
+gunicorn
 python-docx
 crewai
 python-dotenv
