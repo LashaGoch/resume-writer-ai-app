@@ -1,5 +1,5 @@
 streamlit
 python-docx
-crewai
+crewai==0.60.0
 python-dotenv
 openai
