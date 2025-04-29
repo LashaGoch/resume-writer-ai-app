@@ -2,9 +2,8 @@ import streamlit as st
 import warnings
 import os
 from docx import Document
-from crewai import Crew, Agent, Task
 from dotenv import load_dotenv
-from openai import OpenAI
+from crewai import Crew, Agent, Task
 
 # Ignore warnings
 warnings.filterwarnings('ignore')
@@ -19,14 +18,13 @@ def extract_text_from_docx(uploaded_file):
 
 # --- Streamlit App ---
 st.title("📄 Resume Writer AI")
-st.write("Upload your resume (.docx) to enhance and analyze it with AI agents.")
+st.write("Upload your resume (.docx) and let the AI analyze it.")
 
 uploaded_file = st.file_uploader("Upload Resume (.docx)", type=["docx"])
 
 if uploaded_file:
     uploaded_resume_text = extract_text_from_docx(uploaded_file)
 
-    # Debugging API Key (optional)
     openai_api_key = os.getenv('OPENAI_API_KEY')
     if not openai_api_key:
         st.error("❌ OpenAI API Key not found. Please set it in your environment variables.")
@@ -37,18 +35,18 @@ if uploaded_file:
         role="CV Extractor",
         goal="Extract structured data from resume text",
         backstory="You are a professional CV parser. You read and structure resumes into clearly defined parts like experience, skills, education.",
-        model="gpt-3.5-turbo",
+        verbose=True,
         allow_delegation=False,
-        verbose=True
+        model="gpt-3.5-turbo"
     )
 
     keyword_advisor = Agent(
         role="Keyword Advisor",
         goal="Recommend top 5 keywords based on the resume using the custom GPT",
-        backstory="You specialize in job-matching keywords. You use the Resume Keyword Advisor GPT to find best 5 terms to help the resume pass ATS.",
-        model="gpt-3.5-turbo",
+        backstory="You specialize in job-matching keywords to help pass ATS.",
+        verbose=True,
         allow_delegation=False,
-        verbose=True
+        model="gpt-3.5-turbo"
     )
 
     # --- Define the Tasks ---
@@ -59,9 +57,9 @@ if uploaded_file:
     )
 
     task2 = Task(
-        description=f"Based on the resume content, use this GPT to extract 5 resume keywords: https://chatgpt.com/g/g-5cMD7LP1t-resume-keyword-advisor. Input text:\n\n{uploaded_resume_text}",
+        description=f"Based on the resume content, suggest 5 best ATS keywords. Resume:\n\n{uploaded_resume_text}",
         agent=keyword_advisor,
-        expected_output="A list of the top 5 keywords most relevant to the resume content."
+        expected_output="Top 5 keywords most relevant to the resume content."
     )
 
     # --- Create the Crew ---
