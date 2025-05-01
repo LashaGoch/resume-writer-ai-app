@@ -10,8 +10,28 @@ load_dotenv()
 app = Flask(__name__)
 
 def extract_text_from_docx(file):
-    document = Document(file)
-    return "\n".join([para.text for para in document.paragraphs])
+    doc = Document(file)
+    return "\n".join([para.text for para in doc.paragraphs])
+
+def write_text_to_docx(text, file_path):
+    doc = Document()
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Calibri'
+    font.size = Pt(10)
+
+    for block in text.split("\n\n"):
+        block = block.strip()
+        if not block:
+            continue
+        if block.startswith("▪") or block.startswith("•") or block.startswith("-"):
+            para = doc.add_paragraph(style='List Bullet')
+            para.add_run(block)
+        else:
+            doc.add_paragraph(block)
+
+    doc.save(file_path)
+    print(f"✅ Resume written to: {file_path}")
 
 # Simple HTML page for uploading
 UPLOAD_FORM = """
@@ -192,22 +212,16 @@ def process_resume():
     results = crew.kickoff()
 
     # Show results in browser
-    if not isinstance(results, str):
-        compiled_text = ""
-        for task_result in results.task_outputs:
-            compiled_text += f"\n\n### {task_result.task.agent.role} Output\n{task_result.output}"
-    else:
-        compiled_text = results
+    compiled_resume_text = result.output if hasattr(result, 'output') else str(result)
+    output_file = "new.docx"
+    write_text_to_docx(compiled_resume_text, output_file)
+    
+    # Display result in Jupyter or console
+    print("\n✅ All sections rendered and written to new.docx")
+    display(Markdown("## ✅ Final CV Output"))
+    display(Markdown(compiled_resume_text))
 
-#    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
-    return f"""
-        <div style='font-family: Calibri, sans-serif; padding: 20px; background-color: #f9f9f9;'>
-            <h2 style='color: green;'>✅ Resume Processed Successfully!</h2>
-            <div style='white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;'>
-                {compiled_text}
-            </div>
-        </div>
-    """
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
