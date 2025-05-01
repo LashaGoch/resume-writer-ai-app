@@ -139,7 +139,6 @@ def process_resume():
         allow_delegation=False
     )
 
-
     # Define tasks
     tasks = [
         Task(
@@ -189,39 +188,11 @@ def process_resume():
         ),
         Task(
             description=(
-                "Format the following resume to match the exact visual and structural style described below. "
-                "Ensure consistency, clarity, and ATS-compliant layout based on the template standards:\n\n"
-        
-                "1. Use **Calibri font**, **font size 10**, and **black text** throughout.\n"
-                "2. The resume must fit **on 2 pages maximum** with no overflow.\n"
-                "3. The **top header** must include: Full name, city/state (or location), phone number, email, and LinkedIn – all in one or two compact lines.\n"
-                "4. The **professional title** must be bold and centered directly under the contact info.\n"
-                "5. On the next line, add 4–5 ATS-optimized **keywords** in a single line spaced with •.\n"
-                "6. The **Summary** consists of exactly **3 concise paragraphs**, each no more than 2 lines. Use clear, impactful language.\n"
-                "7. The **Areas of Expertise** section is a grid with **9 keywords**, arranged in **3 columns and 3 rows**, center-aligned or evenly spaced.\n"
-                "8. The **Notable Achievements** section is 3–5 bullet points describing notable achievements. Each bullet must be measurable and max 2 lines.\n"
-                "9. Section headers (e.g., Summary, Notable Achievements, Professional Experience, Education & Qualifications, Certifications, Languages) must be bold, all-caps or capitalized, and clearly separated from content.\n"
-                "10. Bullet points throughout the resume (especially under Achievements and Experience) must begin with a **bolded action keyword**, followed by a colon and a 1–2 line measurable accomplishment.\n"
-                "11. **Professional Experience** section:\n"
-                "   - Line 1: Company Name – City, Country\n"
-                "   - Line 2: Job Title | Start Date – End Date\n"
-                "   - Followed by a 2–3 line responsibility summary\n"
-                "   - Then 1–3 bullet points of achievements, each starting with a bolded keyword\n"
-                "12. **Additional Experience** must be formatted in two lines per role:\n"
-                "   - Line 1: Company – City, Country\n"
-                "   - Line 2: Job Title | Start Date – End Date\n"
-                "   - Do not add extra content beyond these lines.\n"
-                "   - Do not put the Start Date, End Date, City, and the Country in Bold. Put Company Name and Job Title in Bold.\n"
-                "13. **Educationcations**:\n"
-                "   - Each education entry is on one line: University • Degree\n"
-                "14. **Certifications**:\n"
-                "   - Certifications listed, one per line with full names\n"
-                "15. **Languages** should be listed in one single line, near the bottom.\n"
-                "16. Maintain tight but readable spacing throughout the document. Avoid excessive white space or page breaks.\n\n"
-                "Apply the above rules to the full text and return the final resume."      
-            ),
+                "Format the following resume using Calibri, size 10, with clear headers and layout. Limit to 2 pages.\n"
+                "Ensure consistency, clarity, and ATS-compliant layout"
+                ),
             agent=formatter,
-            expected_output="A clean, professionally formatted resume styled according to the provided guidelines above."
+            expected_output="A clean, professionally formatted resume styled according to the provided guidelines."
           )
 
         ]
