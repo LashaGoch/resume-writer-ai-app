@@ -158,7 +158,7 @@ def process_resume():
         role="ATS Proofreader",
         goal="Proofread and ensure text is optimized for ATS.",
         backstory="Ensures resumes are clean, accurate, and ATS-friendly.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
