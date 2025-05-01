@@ -187,14 +187,18 @@ def process_resume():
 
     # Show results in browser
     if not isinstance(results, str):
-        results = str(results)
+        compiled_text = ""
+        for task_result in results.task_outputs:
+            compiled_text += f"\n\n### {task_result.task.agent.role} Output\n{task_result.output}"
+    else:
+        compiled_text = results
 
 #    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
     return f"""
         <div style='font-family: Calibri, sans-serif; padding: 20px; background-color: #f9f9f9;'>
             <h2 style='color: green;'>✅ Resume Processed Successfully!</h2>
             <div style='white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;'>
-                {results}
+                {compiled_text}
             </div>
         </div>
     """
