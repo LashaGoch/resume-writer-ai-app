@@ -130,15 +130,6 @@ def process_resume():
         allow_delegation=False
     )
 
-    proofreader = Agent(
-        role="ATS Proofreader",
-        goal="Proofread and ensure text is optimized for ATS.",
-        backstory="Ensures resumes are clean, accurate, and ATS-friendly.",
-        model="gpt-4o",
-        verbose=True,
-        allow_delegation=False
-    )
-
     formatter = Agent(
         role="Resume Formatter",
         goal="Format the final resume output to match the professional template exactly.",
@@ -196,12 +187,6 @@ def process_resume():
             agent=language_writer,
             expected_output="Single-line summary of languages that starts with Languages:"
         ),
-        Task(
-            description=f"Proofread this resume and make sure it's grammatically correct, has implied first person style, does not use I, and it is  ATS-friendly",
-            agent=proofreader,
-            expected_output="Polished version of the resume, optimized for ATS."
-        ),
-
         Task(
             description=(
                 "Format the following resume to match the exact visual and structural style described below. "
