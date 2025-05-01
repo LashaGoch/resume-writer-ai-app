@@ -228,7 +228,7 @@ def process_resume():
 
     # Run the crew
     crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
-        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer, proofreader, formatter
+        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer, formatter
     ], tasks=tasks, verbose=True)
     results = crew.kickoff()
 
