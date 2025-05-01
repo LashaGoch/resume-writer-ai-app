@@ -49,44 +49,217 @@ def process_resume():
         return "OpenAI API Key not found!", 500
 
     # Define CrewAI agents
-    cv_extractor = Agent(
-        role="CV Extractor",
-        goal="Extract structured data",
-        backstory="Professional resume analyzer.",
-        model="gpt-3.5-turbo",
+    keyword_generator = Agent(
+        role="Keyword Generator",
+        goal="Extract top 5 ATS-proof keywords from resume and job title.",
+        backstory="An expert in optimizing resumes for applicant tracking systems.",
+        model="gpt-4o",
         verbose=True,
-        allow_delegation=False,
+        allow_delegation=False
     )
-    keyword_advisor = Agent(
-        role="Keyword Advisor",
-        goal="Suggest top 5 resume keywords",
-        backstory="ATS keyword optimization expert.",
-        model="gpt-3.5-turbo",
+
+    summary_writer = Agent(
+        role="Summary Writer",
+        goal="Create a three-paragraph ATS-proof summary from the resume. Max two lines on each paragraph.",
+        backstory="Writes concise professional summaries tailored to job positions.",
+        model="gpt-4o",
         verbose=True,
-        allow_delegation=False,
+        allow_delegation=False
     )
+
+    expertise_writer = Agent(
+        role="Areas of Expertise Writer",
+        goal="Generate 9 expertise keywords in 3 columns, 3 rows format.",
+        backstory="Crafts strong area of expertise sections for resumes.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    achievement_writer = Agent(
+        role="Achievements Writer",
+        goal="Write 3–5 measurable achievement bullet points.",
+        backstory="Creates bullet points that demonstrate quantifiable success.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    experience_writer = Agent(
+        role="Job Description Writer",
+        goal="Create job descriptions for 2–3 most recent roles with company info, title, dates, summary, and measurable bullet points.",
+        backstory="Expert in writing clean and structured work experience entries for resumes. Do not use first person style.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    additional_exp_writer = Agent(
+        role="Additional Experience Writer",
+        goal="List older work experience entries in two-line format.",
+        backstory="Summarizes earlier work in a compact and clear way.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    education_writer = Agent(
+        role="Education Writer",
+        goal="List education, one per line.",
+        backstory="Summarizes education for resumes.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    cert_writer = Agent(
+        role="Certifications Writer",
+        goal="List certifications, one per line.",
+        backstory="Summarizes credentials for resumes.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    language_writer = Agent(
+        role="Language Writer",
+        goal="List known languages in a single line.",
+        backstory="Formats multilingual proficiencies.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    proofreader = Agent(
+        role="ATS Proofreader",
+        goal="Proofread and ensure text is optimized for ATS.",
+        backstory="Ensures resumes are clean, accurate, and ATS-friendly.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    formatter = Agent(
+        role="Resume Formatter",
+        goal="Format the final resume output to match the professional template exactly.",
+        backstory="You are a senior technical editor and resume stylist who ensures visual consistency and ATS readiness.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
 
     # Define tasks
-    task1 = Task(
-        description=f"Extract experience, skills, education from this resume:\n\n{resume_text}",
-        agent=cv_extractor,
-        expected_output="Structured JSON with sections."
-    )
-    task2 = Task(
-        description=f"Find 5 keywords to optimize resume ATS:\n\n{resume_text}",
-        agent=keyword_advisor,
-        expected_output="Top 5 keywords list."
-    )
+    tasks = [
+        Task(
+            description=f"Given the following resume, generate the top 5 keywords that are optimized for applicant tracking systems (ATS).\n\nResume:\n{resume_text}",
+            agent=keyword_generator,
+            expected_output="A list of 5 ATS-optimized keywords."
+        ),
+        Task(
+            description=f"Using the resume below, write a 3-paragraph professional summary. Each paragraph should be two lines max.\n\nResume:\n{resume_text}",
+            agent=summary_writer,
+            expected_output="Three short paragraphs summarizing the candidate."
+        ),
+        Task(
+            description=f"Based on the resume below, generate 9 'Areas of Expertise' keywords formatted in 3 columns and 3 rows. Do not repeat the keywords generated by keyword_generator agent.\n\nResume:\n{resume_text}",
+            agent=expertise_writer,
+            expected_output="Nine keywords in a 3x3 grid format without column titles."
+        ),
+        Task(
+            description=f"From the following resume, write 3–5 bullet points describing notable achievements. Each bullet must be measurable and max 2 lines.\n\nResume:\n{resume_text}",
+            agent=achievement_writer,
+            expected_output="3–5 short achievement bullet points with metrics or impact."
+        ),
+        Task(
+            description=f"Use this resume to create job descriptions for the 2–3 most recent roles. For each: line 1 is Company, City, Country; line 2 is Job Title and Dates; followed by a 2-3 line summary and 1–3 bullet points of achievements.\n\nResume:\n{resume_text}",
+            agent=experience_writer,
+            expected_output="2–3 job experiences formatted as described."
+        ),
+        Task(
+            description=f"Summarize other job experience in the resume below using a 2-line format per job. Do not add extra lines or job responsibilities.\n\nResume:\n{resume_text}",
+            agent=additional_exp_writer,
+            expected_output="Older jobs in 2-line format (company + role + dates)."
+        ),
+        Task(
+            description=f"Extract education from this resume. Format each entry on one line.\n\nResume:\n{resume_text}",
+            agent=education_writer,
+            expected_output="List of education entries, one per line."
+        ),
+        Task(
+            description=f"Extract certifications from this resume. Format each entry on one line.\n\nResume:\n{resume_text}",
+            agent=cert_writer,
+            expected_output="List of certifications with full name and easily identifiable, one per line."
+        ),
+        Task(
+            description=f"List all languages mentioned in the following resume on one line.\n\nResume:\n{resume_text}",
+            agent=language_writer,
+            expected_output="Single-line summary of languages that starts with Languages:"
+        ),
+        Task(
+            description=f"Proofread this resume and make sure it's grammatically correct, has implied first person style, does not use I, and it is  ATS-friendly",
+            agent=proofreader,
+            expected_output="Polished version of the resume, optimized for ATS."
+        ),
+
+        Task(
+            description=(
+                "Format the following resume to match the exact visual and structural style described below. "
+                "Ensure consistency, clarity, and ATS-compliant layout based on the template standards:\n\n"
+        
+                "1. Use **Calibri font**, **font size 10**, and **black text** throughout.\n"
+                "2. The resume must fit **on 2 pages maximum** with no overflow.\n"
+                "3. The **top header** must include: Full name, city/state (or location), phone number, email, and LinkedIn – all in one or two compact lines.\n"
+                "4. The **professional title** must be bold and centered directly under the contact info.\n"
+                "5. On the next line, add 4–5 ATS-optimized **keywords** in a single line spaced with •.\n"
+                "6. The **Summary** consists of exactly **3 concise paragraphs**, each no more than 2 lines. Use clear, impactful language.\n"
+                "7. The **Areas of Expertise** section is a grid with **9 keywords**, arranged in **3 columns and 3 rows**, center-aligned or evenly spaced.\n"
+                "8. The **Notable Achievements** section is 3–5 bullet points describing notable achievements. Each bullet must be measurable and max 2 lines.\n"
+                "9. Section headers (e.g., Summary, Notable Achievements, Professional Experience, Education & Qualifications, Certifications, Languages) must be bold, all-caps or capitalized, and clearly separated from content.\n"
+                "10. Bullet points throughout the resume (especially under Achievements and Experience) must begin with a **bolded action keyword**, followed by a colon and a 1–2 line measurable accomplishment.\n"
+                "11. **Professional Experience** section:\n"
+                "   - Line 1: Company Name – City, Country\n"
+                "   - Line 2: Job Title | Start Date – End Date\n"
+                "   - Followed by a 2–3 line responsibility summary\n"
+                "   - Then 1–3 bullet points of achievements, each starting with a bolded keyword\n"
+                "12. **Additional Experience** must be formatted in two lines per role:\n"
+                "   - Line 1: Company – City, Country\n"
+                "   - Line 2: Job Title | Start Date – End Date\n"
+                "   - Do not add extra content beyond these lines.\n"
+                "   - Do not put the Start Date, End Date, City, and the Country in Bold. Put Company Name and Job Title in Bold.\n"
+                "13. **Educationcations**:\n"
+                "   - Each education entry is on one line: University • Degree\n"
+                "14. **Certifications**:\n"
+                "   - Certifications listed, one per line with full names\n"
+                "15. **Languages** should be listed in one single line, near the bottom.\n"
+                "16. Maintain tight but readable spacing throughout the document. Avoid excessive white space or page breaks.\n\n"
+                "Apply the above rules to the full text and return the final resume."      
+            ),
+            agent=formatter,
+            expected_output="A clean, professionally formatted resume styled according to the provided guidelines above."
+          )
+
+        ]
 
     # Run the crew
-    crew = Crew(agents=[cv_extractor, keyword_advisor], tasks=[task1, task2], verbose=True)
+    crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
+        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer, proofreader, formatter
+    ], tasks=tasks, verbose=True)
     results = crew.kickoff()
 
     # Show results in browser
     if not isinstance(results, str):
         results = str(results)
 
-    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
+#    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
+    return f"""
+        <div style='font-family: Calibri, sans-serif; padding: 20px; background-color: #f9f9f9;'>
+            <h2 style='color: green;'>✅ Resume Processed Successfully!</h2>
+            <div style='white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;'>
+                {results}
+            </div>
+        </div>
+    """
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
