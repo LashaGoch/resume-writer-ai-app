@@ -36,13 +36,66 @@ def write_text_to_docx(text, file_path):
 UPLOAD_FORM = """
 <!DOCTYPE html>
 <html>
-<head><title>Resume Writer AI</title></head>
+<head>
+    <title>Resume Writer AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #333;
+        }
+        button, input[type="file"] {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #loading {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+    </style>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
+</head>
 <body>
-    <h1>Resume Writer AI 📄</h1>
-    <form method="POST" action="/process" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".docx" required>
-        <button type="submit">Upload and Process</button>
-    </form>
+    <div class="container">
+        <h1>Resume Writer AI 📄</h1>
+        <form method="POST" action="/process" enctype="multipart/form-data" onsubmit="showLoading()">
+            <input type="file" name="file" accept=".docx" required>
+            <br>
+            <button type="submit">Upload and Process</button>
+        </form>
+        <div id="loading">Processing your resume... Please wait.</div>
+    </div>
 </body>
 </html>
 """
@@ -223,13 +276,85 @@ def process_resume():
 
 #    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
     return f"""
-        <div style='font-family: Calibri, sans-serif; padding: 20px;'>
-            <h2>✅ Resume Processed & Formatted Successfully!</h2>
-            <a href='/download' download>📄 Download Formatted Resume</a>
-            <br><br>
-            <button onclick="window.location.href='/'" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">⬅️ Go Back</button>
-            <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{str(compiled_resume_text).replace('<', '&lt;').replace('>', '&gt;')}</pre>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: flex-start; /* Align content at the top */
+                    min-height: 100vh; /* Ensure the body takes at least the full viewport height */
+                    margin: 0;
+                    background-color: #f4f4f9;
+                    overflow-y: auto; /* Enable scrolling if content overflows */
+                }}
+                .container {{
+                    text-align: center;
+                    background: #ffffff;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    margin-top: 20px; /* Add some spacing from the top */
+                    position: relative;
+                }}
+                h2 {{
+                    color: green;
+                }}
+                a.download-btn {{
+                    display: inline-block;
+                    margin-top: 20px;
+                    padding: 15px 30px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-decoration: none;
+                    color: white;
+                    background-color: #28a745;
+                    border-radius: 5px;
+                    transition: background-color 0.3s ease;
+                }}
+                a.download-btn:hover {{
+                    background-color: #218838;
+                }}
+                button.go-back-btn {{
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    padding: 10px 20px;
+                    font-size: 14px;
+                    border: none;
+                    border-radius: 5px;
+                    background-color: #007bff;
+                    color: white;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }}
+                button.go-back-btn:hover {{
+                    background-color: #0056b3;
+                }}
+                pre {{
+                    text-align: left;
+                    white-space: pre-wrap;
+                    font-size: 14px;
+                    color: #333;
+                    margin-top: 20px;
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-radius: 5px;
+                    overflow-x: auto;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <button class="go-back-btn" onclick="window.location.href='/'">⬅️ Go Back</button>
+                <h2>✅ Resume Processed & Formatted Successfully!</h2>
+                <a href='/download' download class="download-btn">📄 Download Formatted Resume</a>
+                <pre>{str(compiled_resume_text).replace('<', '&lt;').replace('>', '&gt;')}</pre>
+            </div>
+        </body>
+        </html>
     """
 
 @app.route('/download')
