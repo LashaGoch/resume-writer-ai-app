@@ -154,6 +154,15 @@ def process_resume():
         allow_delegation=False
     )
 
+    formatter = Agent(
+        role="Resume Formatter", 
+        goal="Format the final resume output to match the professional template exactly.", 
+        backstory="Senior technical editor and resume stylist.", 
+        model="gpt-4o", 
+        verbose=True,
+        allow_delegation=False
+    )
+
 
     
 
@@ -219,13 +228,54 @@ def process_resume():
         if hasattr(task, 'output'):
             compiled_resume_text += f"\n\n{task.output}"
 
-    write_text_to_docx(compiled_resume_text.strip(), output_path)
+    # Formatter Task
+    format_task = Task(
+        description=(
+            "Format the following resume to match the exact visual and structural style described below. "
+            "Ensure consistency, clarity, and ATS-compliant layout based on the template standards:\n\n"
+            "1. Use **Calibri font**, **font size 10**, and **black text** throughout.\n"
+            "2. The resume must fit **on 2 pages maximum** with no overflow.\n"
+            "3. The **top header** must include: Full name, city/state (or location), phone number, email, and LinkedIn – all in one or two compact lines.\n"
+            "4. The **professional title** must be bold and centered directly under the contact info.\n"
+            "5. On the next line, add 4–5 ATS-optimized **keywords** in a single line spaced with •.\n"
+            "6. The **Summary** consists of exactly **3 concise paragraphs**, each no more than 2 lines. Use clear, impactful language.\n"
+            "7. The **Areas of Expertise** section is a grid with **9 keywords**, arranged in **3 columns and 3 rows**, center-aligned or evenly spaced.\n"
+            "8. The **Notable Achievements** section is 3–5 bullet points describing notable achievements. Each bullet must be measurable and max 2 lines.\n"
+            "9. Section headers (e.g., Summary, Notable Achievements, Professional Experience, Education & Qualifications, Certifications, Languages) must be bold, all-caps or capitalized, and clearly separated from content.\n"
+            "10. Bullet points throughout the resume (especially under Achievements and Experience) must begin with a **bolded action keyword**, followed by a colon and a 1–2 line measurable accomplishment.\n"
+            "11. **Professional Experience** section:\n"
+            "   - Line 1: Company Name – City, Country\n"
+            "   - Line 2: Job Title | Start Date – End Date\n"
+            "   - Followed by a 2–3 line responsibility summary\n"
+            "   - Then 1–3 bullet points of achievements, each starting with a bolded keyword\n"
+            "12. **Additional Experience** must be formatted in two lines per role:\n"
+            "   - Line 1: Company – City, Country\n"
+            "   - Line 2: Job Title | Start Date – End Date\n"
+            "   - Do not add extra content beyond these lines.\n"
+            "   - Do not put the Start Date, End Date, City, and the Country in Bold. Put Company Name and Job Title in Bold.\n"
+            "13. **Educationcations**:\n"
+            "   - Each education entry is on one line: University • Degree\n"
+            "14. **Certifications**:\n"
+            "   - Certifications listed, one per line with full names\n"
+            "15. **Languages** should be listed in one single line, near the bottom.\n"
+            "16. Maintain tight but readable spacing throughout the document. Avoid excessive white space or page breaks.\n\n"
+            "Apply the above rules to the full text and return the final resume.\n\n"
+            f"Resume:\n{compiled_resume_text}"
+        ),
+        agent=formatter,
+        expected_output="A clean, professionally formatted resume styled according to the provided guidelines above."
+    )
+
+
+    
+    formatted_result = format_task.execute()
+    write_text_to_docx(str(formatted_result).strip(), output_path)
 
     return f"""
         <div style='font-family: Calibri, sans-serif; padding: 20px;'>
-            <h2>✅ Resume Processed Successfully!</h2>
-            <a href='/download' download>📅 Download New Resume</a>
-            <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{compiled_resume_text}</pre>
+            <h2>✅ Resume Processed & Formatted Successfully!</h2>
+            <a href='/download' download>📄 Download Formatted Resume</a>
+            <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{formatted_result}</pre>
         </div>
     """
 
