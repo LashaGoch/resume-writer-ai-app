@@ -97,8 +97,8 @@ def process_resume():
     additional_exp_writer = Agent(
         role="Additional Experience Writer",
         goal="List older work experience entries in two-line format.",
-        backstory="Summarizes earlier work in a compact and clear way.",
-        model="gpt-4o",
+        backstory="List earlier work in a compact and clear way.",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -107,7 +107,7 @@ def process_resume():
         role="Education Writer",
         goal="List education, one per line.",
         backstory="Summarizes education for resumes.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -115,8 +115,8 @@ def process_resume():
     cert_writer = Agent(
         role="Certifications Writer",
         goal="List certifications, one per line.",
-        backstory="Summarizes credentials for resumes.",
-        model="gpt-4o",
+        backstory="List credentials for resumes.",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -125,7 +125,7 @@ def process_resume():
         role="Language Writer",
         goal="List known languages in a single line.",
         backstory="Formats multilingual proficiencies.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
