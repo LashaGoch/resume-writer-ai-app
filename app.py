@@ -212,20 +212,19 @@ def process_resume():
         experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
     ], tasks=tasks, verbose=True)
     
-    result = crew.kickoff()
+    resume_result = crew.kickoff()
 
-    # Combine results from all tasks
-    if hasattr(result, 'task_outputs'):
-        compiled_resume_text = "\n\n".join([task.output for task in result.task_outputs])
-    else:
-        compiled_resume_text = str(result)
+    compiled_resume_text = ""
+    for task in crew.tasks:
+        if hasattr(task, 'output'):
+            compiled_resume_text += f"\n\n{task.output}"
 
-    write_text_to_docx(compiled_resume_text, output_path)
+    write_text_to_docx(compiled_resume_text.strip(), output_path)
 
     return f"""
         <div style='font-family: Calibri, sans-serif; padding: 20px;'>
             <h2>✅ Resume Processed Successfully!</h2>
-            <a href='/download' download>📥 Download New Resume</a>
+            <a href='/download' download>📅 Download New Resume</a>
             <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{compiled_resume_text}</pre>
         </div>
     """
