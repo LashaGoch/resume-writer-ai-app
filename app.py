@@ -130,15 +130,6 @@ def process_resume():
         allow_delegation=False
     )
 
-    formatter = Agent(
-        role="Resume Formatter",
-        goal="Format the final resume output to match the professional template exactly.",
-        backstory="You are a senior technical editor and resume stylist who ensures visual consistency and ATS readiness.",
-        model="gpt-4o",
-        verbose=True,
-        allow_delegation=False
-    )
-
     # Define tasks
     tasks = [
         Task(
@@ -185,21 +176,12 @@ def process_resume():
             description=f"List all languages mentioned in the following resume on one line.\n\nResume:\n{resume_text}",
             agent=language_writer,
             expected_output="Single-line summary of languages that starts with Languages:"
-        ),
-        Task(
-            description=(
-                "Format the following resume using Calibri, size 10, with clear headers and layout. Limit to 2 pages.\n"
-                "Ensure consistency, clarity, and ATS-compliant layout"
-                ),
-            agent=formatter,
-            expected_output="A clean, professionally formatted resume styled according to the provided guidelines."
-          )
-
+        )
         ]
 
     # Run the crew
     crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
-        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer, formatter
+        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
     ], tasks=tasks, verbose=True)
     results = crew.kickoff()
 
