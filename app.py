@@ -208,7 +208,7 @@ def process_resume():
         experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
     ], tasks=tasks, verbose=True)
     
-    results = crew.kickoff()
+    result = crew.kickoff()
 
     # Show results in browser
     compiled_resume_text = result.output if hasattr(result, 'output') else str(result)
