@@ -1,8 +1,9 @@
 import os
-from flask import Flask, request, render_template_string
 from dotenv import load_dotenv
 from docx import Document
+from docx.shared import Pt
 from crewai import Crew, Agent, Task
+from flask import Flask, request, render_template_string, send_file
 
 # Load environment variables
 load_dotenv()
@@ -10,8 +11,8 @@ load_dotenv()
 app = Flask(__name__)
 
 def extract_text_from_docx(file):
-    doc = Document(file)
-    return "\n".join([para.text for para in doc.paragraphs])
+    document = Document(file)
+    return "\n".join([para.text for para in document.paragraphs])
 
 def write_text_to_docx(text, file_path):
     doc = Document()
@@ -31,15 +32,11 @@ def write_text_to_docx(text, file_path):
             doc.add_paragraph(block)
 
     doc.save(file_path)
-    print(f"✅ Resume written to: {file_path}")
 
-# Simple HTML page for uploading
 UPLOAD_FORM = """
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Resume Writer AI</title>
-</head>
+<head><title>Resume Writer AI</title></head>
 <body>
     <h1>Resume Writer AI 📄</h1>
     <form method="POST" action="/process" enctype="multipart/form-data">
@@ -62,7 +59,8 @@ def process_resume():
 
     # Extract text from uploaded resume
     resume_text = extract_text_from_docx(uploaded_file)
-
+    output_path = "new.docx"
+    
     # Slice only relevant part of resume for education
     education_section = resume_text.split("EDUCATION")[1]
 
@@ -209,19 +207,24 @@ def process_resume():
     crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
         experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
     ], tasks=tasks, verbose=True)
+    
     results = crew.kickoff()
 
     # Show results in browser
     compiled_resume_text = result.output if hasattr(result, 'output') else str(result)
-    output_file = "new.docx"
-    write_text_to_docx(compiled_resume_text, output_file)
+    write_text_to_docx(compiled_resume_text, output_path)
     
-    # Display result in Jupyter or console
-    print("\n✅ All sections rendered and written to new.docx")
-    display(Markdown("## ✅ Final CV Output"))
-    display(Markdown(compiled_resume_text))
+    return f"""
+        <div style='font-family: Calibri, sans-serif; padding: 20px;'>
+            <h2>✅ Resume Processed Successfully!</h2>
+            <a href='/download' download>📥 Download New Resume</a>
+            <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{compiled_resume_text}</pre>
+        </div>
+    """
 
-
+@app.route('/download')
+def download():
+    return send_file("new.docx", as_attachment=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
