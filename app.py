@@ -219,15 +219,16 @@ def process_resume():
         if hasattr(task, 'output'):
             compiled_resume_text += f"\n\n{task.output}"
 
-    write_text_to_docx(str(result).strip(), output_path)
+    write_text_to_docx(str(compiled_resume_text).strip(), output_path)
 
 #    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
     return f"""
-        <div style='font-family: Calibri, sans-serif; padding: 20px; background-color: #f9f9f9;'>
-            <h2 style='color: green;'>✅ Resume Processed Successfully!</h2>
-            <div style='white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #333;'>
-                {compiled_resume_text}
-            </div>
+        <div style='font-family: Calibri, sans-serif; padding: 20px;'>
+            <h2>✅ Resume Processed & Formatted Successfully!</h2>
+            <a href='/download' download>📄 Download Formatted Resume</a>
+            <br><br>
+            <button onclick="window.location.href='/'" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">⬅️ Go Back</button>
+            <pre style='white-space: pre-wrap; font-size: 14px; color: #333;'>{str(compiled_resume_text).replace('<', '&lt;').replace('>', '&gt;')}</pre>
         </div>
     """
 
