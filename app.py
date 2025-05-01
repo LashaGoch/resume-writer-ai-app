@@ -154,14 +154,7 @@ def process_resume():
         allow_delegation=False
     )
 
-    proofreader = Agent(
-        role="ATS Proofreader",
-        goal="Proofread and ensure text is optimized for ATS.",
-        backstory="Ensures resumes are clean, accurate, and ATS-friendly.",
-        model="gpt-3.5-turbo",
-        verbose=True,
-        allow_delegation=False
-    )
+
     
 
     # Define tasks
@@ -210,25 +203,25 @@ def process_resume():
             description=f"List all languages mentioned in the following resume on one line.\n\nResume:\n{resume_text}",
             agent=language_writer,
             expected_output="Single-line summary of languages that starts with Languages:"
-        ),
-        Task(
-            description=f"Proofread this resume and make sure it's grammatically correct, has implied first person style, does not use I, and it is  ATS-friendly",
-            agent=proofreader,
-            expected_output="Polished version of the resume, optimized for ATS."
         )
+
         ]
 
     # Run the crew
     crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
-        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer, proofreader
+        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
     ], tasks=tasks, verbose=True)
     
     result = crew.kickoff()
 
-    # Show results in browser
-    compiled_resume_text = result.output if hasattr(result, 'output') else str(result)
+    # Combine results from all tasks
+    if hasattr(result, 'task_outputs'):
+        compiled_resume_text = "\n\n".join([task.output for task in result.task_outputs])
+    else:
+        compiled_resume_text = str(result)
+
     write_text_to_docx(compiled_resume_text, output_path)
-    
+
     return f"""
         <div style='font-family: Calibri, sans-serif; padding: 20px;'>
             <h2>✅ Resume Processed Successfully!</h2>
