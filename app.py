@@ -46,7 +46,7 @@ UPLOAD_FORM = """
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f4f4f9;
+            background-color: #F1E424; /* Yellow background */
         }
         .container {
             text-align: center;
@@ -54,9 +54,30 @@ UPLOAD_FORM = """
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .logo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
         }
         h1 {
             color: #333;
+            margin-bottom: 5px;
+        }
+        h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+        .subtitle {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .subtitle .black {
+            color: #333;
+        }
+        .subtitle .green {
+            color: #038C40; /* Green color */
         }
         button, input[type="file"] {
             margin-top: 20px;
@@ -67,11 +88,22 @@ UPLOAD_FORM = """
             cursor: pointer;
         }
         button {
-            background-color: #007bff;
+            background-color: #038C40; /* Green button */
             color: white;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #026C30; /* Darker green on hover */
+        }
+        input[type="file"] {
+            background-color: #ffffff;
+            border: 2px solid #038C40;
+            color: #333;
+            cursor: pointer;
+        }
+        input[type="file"]:hover {
+            border-color: #026C30;
         }
         #loading {
             display: none;
@@ -89,6 +121,9 @@ UPLOAD_FORM = """
 <body>
     <div class="container">
         <h1>Resume Writer AI 📄</h1>
+        <div class="subtitle">
+            <span class="black">by Canary</span> <span class="green">Careers</span>
+        </div>
         <form method="POST" action="/process" enctype="multipart/form-data" onsubmit="showLoading()">
             <input type="file" name="file" accept=".docx" required>
             <br>
@@ -287,7 +322,7 @@ def process_resume():
                     align-items: flex-start; /* Align content at the top */
                     min-height: 100vh; /* Ensure the body takes at least the full viewport height */
                     margin: 0;
-                    background-color: #f4f4f9;
+                    background-color: #F1E424; /* Yellow background */
                     overflow-y: auto; /* Enable scrolling if content overflows */
                 }}
                 .container {{
@@ -310,12 +345,12 @@ def process_resume():
                     font-weight: bold;
                     text-decoration: none;
                     color: white;
-                    background-color: #28a745;
+                    background-color: #038C40; /* Green button */
                     border-radius: 5px;
                     transition: background-color 0.3s ease;
                 }}
                 a.download-btn:hover {{
-                    background-color: #218838;
+                    background-color: #026C30; /* Darker green on hover */
                 }}
                 button.go-back-btn {{
                     position: absolute;
@@ -325,13 +360,28 @@ def process_resume():
                     font-size: 14px;
                     border: none;
                     border-radius: 5px;
-                    background-color: #007bff;
+                    background-color: #038C40; /* Green button */
                     color: white;
                     cursor: pointer;
                     transition: background-color 0.3s ease;
                 }}
                 button.go-back-btn:hover {{
-                    background-color: #0056b3;
+                    background-color: #026C30; /* Darker green on hover */
+                }}
+                button.homepage-btn {{
+                    margin-top: 20px;
+                    padding: 15px 30px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 5px;
+                    background-color: #038C40; /* Green button */
+                    color: white;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }}
+                button.homepage-btn:hover {{
+                    background-color: #026C30; /* Darker green on hover */
                 }}
                 pre {{
                     text-align: left;
@@ -351,6 +401,8 @@ def process_resume():
                 <button class="go-back-btn" onclick="window.location.href='/'">⬅️ Go Back</button>
                 <h2>✅ Resume Processed & Formatted Successfully!</h2>
                 <a href='/download' download class="download-btn">📄 Download Formatted Resume</a>
+                <br>
+                <button class="homepage-btn" onclick="window.location.href='https://canary-careers.com/'">🏠 Go to Homepage</button>
                 <pre>{str(compiled_resume_text).replace('<', '&lt;').replace('>', '&gt;')}</pre>
             </div>
         </body>
