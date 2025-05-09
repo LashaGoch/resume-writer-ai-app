@@ -6,6 +6,7 @@ from docx.shared import Pt, RGBColor
 from crewai import Crew, Agent, Task
 from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
+import re
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +42,45 @@ def extract_text_from_docx(file):
     document = Document(file)
     return "\n".join([para.text for para in document.paragraphs])
 
+def add_formatted_paragraph(doc, text, font_name='Calibri Light', font_size=Pt(10), line_spacing=Pt(12), space_after=Pt(1)):
+    """
+    Add a paragraph with proper formatting, handling bold text marked with asterisks.
+    Text between ** or * will be formatted as bold.
+    """
+    para = doc.add_paragraph()
+    para_format = para.paragraph_format
+    para_format.line_spacing = line_spacing
+    para_format.space_after = space_after
+    
+    # Find all text between asterisks for bold formatting
+    # This regex finds text between ** or * (single or double asterisks)
+    pattern = r'\*\*(.*?)\*\*|\*(.*?)\*'
+    last_end = 0
+    
+    for match in re.finditer(pattern, text):
+        # Add text before the match
+        if match.start() > last_end:
+            run = para.add_run(text[last_end:match.start()])
+            run.font.name = font_name
+            run.font.size = font_size
+        
+        # Add the bold text - either from group 1 (** **) or group 2 (* *)
+        bold_text = match.group(1) if match.group(1) is not None else match.group(2)
+        run = para.add_run(bold_text)
+        run.font.name = font_name
+        run.font.size = font_size
+        run.bold = True
+        
+        last_end = match.end()
+    
+    # Add any remaining text after the last match
+    if last_end < len(text):
+        run = para.add_run(text[last_end:])
+        run.font.name = font_name
+        run.font.size = font_size
+    
+    return para
+
 def write_text_to_docx(text, file_path):
     doc = Document()
 
@@ -74,16 +114,39 @@ def write_text_to_docx(text, file_path):
             heading_run = heading.runs[0]
             heading_run.font.name = 'Calibri Light'
             heading_run.font.size = Pt(12.5)
-            summary_content = section.replace("**Summary**", "").strip().split("\n")
-            for summ in summary_content:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(1)  # Space after the paragraph
-                run = para.add_run(summ)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+            
+            # Extract and clean summary content
+            clean_content = section.replace("**Summary**", "").strip()
+            
+            # Look for paragraphs separated by blank lines
+            paragraphs = []
+            current_para = []
+            
+            # Split by lines first
+            lines = clean_content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line and current_para:  # Empty line and we have content
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
+                elif line:  # Non-empty line
+                    current_para.append(line)
+            
+            # Don't forget to add the last paragraph if there is one
+            if current_para:
+                paragraphs.append(' '.join(current_para))
+            
+            # If we somehow didn't get at least one paragraph, fall back to the original method
+            if not paragraphs:
+                paragraphs = [clean_content]
+            
+            # Format each paragraph
+            for paragraph_text in paragraphs:
+                if not paragraph_text:
+                    continue
                 
+                add_formatted_paragraph(doc, paragraph_text, space_after=Pt(6))
+
         elif section.startswith("**Areas of Expertise**"):
             heading = doc.add_heading("Areas of Expertise", level=1)
             heading_run = heading.runs[0]
@@ -91,13 +154,7 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             expertise_keywords = section.replace("**Areas of Expertise**", "").strip().split("\n")
             for keyword in expertise_keywords:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(0)  # Space after the paragraph
-                run = para.add_run(keyword)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+                add_formatted_paragraph(doc, keyword, space_after=Pt(0))
 
         elif section.startswith("**Notable Achievements**"):
             heading = doc.add_heading("Notable Achievements", level=1)
@@ -106,13 +163,7 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             achievements = section.replace("**Notable Achievements**", "").strip().split("\n")
             for ach in achievements:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(1)  # Space after the paragraph
-                run = para.add_run(ach)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+                add_formatted_paragraph(doc, ach)
 
         elif section.startswith("**Professional Experience**"):
             heading = doc.add_heading("Professional Experience", level=1)
@@ -121,12 +172,11 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             experience_entries = section.replace("**Professional Experience**", "").strip().split("\n")
             for entry in experience_entries:
-                para = doc.add_paragraph()
-                run = para.add_run(entry)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
-                run.bold = True
-
+                # Use the add_formatted_paragraph function with special handling for this section
+                para = add_formatted_paragraph(doc, entry)
+                # If the entire entry isn't bold, make it bold (company names, etc.)
+                if len(para.runs) == 1 and not para.runs[0].bold:
+                    para.runs[0].bold = True
 
         elif section.startswith("**Additional Experience**"):
             heading = doc.add_heading("Additional Experience", level=1)
@@ -135,13 +185,7 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             additional_experience_entries = section.replace("**Additional Experience**", "").strip().split("\n")
             for entry in additional_experience_entries:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(1)  # Space after the paragraph
-                run = para.add_run(entry)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+                add_formatted_paragraph(doc, entry)
 
         elif section.startswith("**Education**"):
             heading = doc.add_heading("Education", level=1)
@@ -150,13 +194,7 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             education_entries = section.replace("**Education**", "").strip().split("\n")
             for edu in education_entries:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(1)  # Space after the paragraph
-                run = para.add_run(edu)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+                add_formatted_paragraph(doc, edu)
 
         elif section.startswith("**Certifications**"):
             heading = doc.add_heading("Certifications", level=1)
@@ -165,33 +203,23 @@ def write_text_to_docx(text, file_path):
             heading_run.font.size = Pt(12.5)
             certifications = section.replace("**Certifications**", "").strip().split("\n")
             for cert in certifications:
-                para = doc.add_paragraph()
-                para_format = para.paragraph_format
-                para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-                para_format.space_after = Pt(1)  # Space after the paragraph
-                run = para.add_run(cert)
-                run.font.name = 'Calibri Light'
-                run.font.size = Pt(10)
+                add_formatted_paragraph(doc, cert)
+            
+            # Add extra space after Certifications section
+            spacing_para = doc.add_paragraph()
+            spacing_para.paragraph_format.space_after = Pt(12)  # Add extra spacing
 
         elif section.startswith("**Languages**"):
             heading = doc.add_heading("Languages", level=1)
             heading_run = heading.runs[0]
             heading_run.font.name = 'Calibri Light'
             heading_run.font.size = Pt(12.5)
-            para = doc.add_paragraph(section.replace("**Languages:**", "").strip())
-            para_format = para.paragraph_format
-            para_format.line_spacing = Pt(12)  # Single spacing within the paragraph
-            para_format.space_after = Pt(1)  # Space after the paragraph
-            run = para.add_run()
-            run.font.name = 'Calibri Light'
-            run.font.size = Pt(10)
+            languages_text = section.replace("**Languages:**", "").strip()
+            add_formatted_paragraph(doc, languages_text)
 
         else:
             # Add any other content as normal text
-            para = doc.add_paragraph(section)
-            run = para.add_run()
-            run.font.name = 'Calibri Light'
-            run.font.size = Pt(10)
+            add_formatted_paragraph(doc, section)
 
     # Save the document
     doc.save(file_path)
@@ -315,11 +343,13 @@ def process_resume():
             "On the next line, add 4–5 ATS-optimized keywords in a single line spaced with •."
         ),
         Task(
-            description=f"Using the resume, write a 3-paragraph professional summary. Each paragraph should be two lines max.\n\nResume:\n{resume_text}",
+            description=f"Using the resume, write a 3-paragraph professional summary. Each paragraph should be two lines max. Format your response with a blank line between each paragraph.\n\nResume:\n{resume_text}",
             agent=summary_writer,
-            expected_output="Three short paragraphs summarizing the candidate.\n"
-            "Create title in bold: Summary. This consists of exactly 3 concise paragraphs, each no more than 2 lines. Use clear, impactful language."
-     
+            expected_output="Three short paragraphs summarizing the candidate, with a blank line between each paragraph.\n"
+            "Create title in bold: **Summary**\n\n"
+            "First paragraph\n\n"
+            "Second paragraph\n\n"
+            "Third paragraph"
         ),
         Task(
             description=f"Based on the resume, generate 9 'Areas of Expertise' keywords formatted in 3 columns and 3 rows. Do not repeat the keywords generated by keyword_generator agent.\n\nResume:\n{resume_text}",
