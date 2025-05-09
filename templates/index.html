@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Writer AI</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #F1E424; /* Yellow background */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resume Writer AI 📄</h1>
+        <div class="subtitle">
+            <span class="black">by Canary</span> <span class="green">Careers</span>
+        </div>
+        <form method="POST" action="/process" enctype="multipart/form-data" onsubmit="showLoading()">
+            <input type="file" name="file" accept=".docx" required>
+            <br>
+            <button type="submit">Upload and Process</button>
+        </form>
+        <div id="loading">Processing your resume... Please wait.</div>
+    </div>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
