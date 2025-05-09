@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from docx import Document
 from docx.shared import Pt
 from crewai import Crew, Agent, Task
-from flask import Flask, request, render_template_string, send_file
+from flask import Flask, request, render_template, send_file
 
 # Load environment variables
 load_dotenv()
@@ -33,111 +33,9 @@ def write_text_to_docx(text, file_path):
 
     doc.save(file_path)
 
-UPLOAD_FORM = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Resume Writer AI</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #F1E424; /* Yellow background */
-        }
-        .container {
-            text-align: center;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-        .logo {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 5px;
-        }
-        h2 {
-            font-size: 18px;
-            margin-top: 0;
-        }
-        .subtitle {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .subtitle .black {
-            color: #333;
-        }
-        .subtitle .green {
-            color: #038C40; /* Green color */
-        }
-        button, input[type="file"] {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button {
-            background-color: #038C40; /* Green button */
-            color: white;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #026C30; /* Darker green on hover */
-        }
-        input[type="file"] {
-            background-color: #ffffff;
-            border: 2px solid #038C40;
-            color: #333;
-            cursor: pointer;
-        }
-        input[type="file"]:hover {
-            border-color: #026C30;
-        }
-        #loading {
-            display: none;
-            margin-top: 20px;
-            font-size: 18px;
-            color: #555;
-        }
-    </style>
-    <script>
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-        }
-    </script>
-</head>
-<body>
-    <div class="container">
-        <h1>Resume Writer AI 📄</h1>
-        <div class="subtitle">
-            <span class="black">by Canary</span> <span class="green">Careers</span>
-        </div>
-        <form method="POST" action="/process" enctype="multipart/form-data" onsubmit="showLoading()">
-            <input type="file" name="file" accept=".docx" required>
-            <br>
-            <button type="submit">Upload and Process</button>
-        </form>
-        <div id="loading">Processing your resume... Please wait.</div>
-    </div>
-</body>
-</html>
-"""
-
 @app.route('/')
 def home():
-    return render_template_string(UPLOAD_FORM)
+    return render_template('index.html')
 
 @app.route('/process', methods=['POST'])
 def process_resume():
@@ -331,105 +229,7 @@ def process_resume():
 
     write_text_to_docx(str(compiled_resume_text).strip(), output_path)
 
-#    return f"<h2>✅ Resume Processed Successfully!</h2><pre>{results}</pre>"
-    return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: flex-start; /* Align content at the top */
-                    min-height: 100vh; /* Ensure the body takes at least the full viewport height */
-                    margin: 0;
-                    background-color: #F1E424; /* Yellow background */
-                    overflow-y: auto; /* Enable scrolling if content overflows */
-                }}
-                .container {{
-                    text-align: center;
-                    background: #ffffff;
-                    padding: 30px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                    margin-top: 20px; /* Add some spacing from the top */
-                    position: relative;
-                }}
-                h2 {{
-                    color: green;
-                }}
-                a.download-btn {{
-                    display: inline-block;
-                    margin-top: 20px;
-                    padding: 15px 30px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    text-decoration: none;
-                    color: white;
-                    background-color: #038C40; /* Green button */
-                    border-radius: 5px;
-                    transition: background-color 0.3s ease;
-                }}
-                a.download-btn:hover {{
-                    background-color: #026C30; /* Darker green on hover */
-                }}
-                button.go-back-btn {{
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    padding: 10px 20px;
-                    font-size: 14px;
-                    border: none;
-                    border-radius: 5px;
-                    background-color: #038C40; /* Green button */
-                    color: white;
-                    cursor: pointer;
-                    transition: background-color 0.3s ease;
-                }}
-                button.go-back-btn:hover {{
-                    background-color: #026C30; /* Darker green on hover */
-                }}
-                button.homepage-btn {{
-                    margin-top: 20px;
-                    padding: 15px 30px;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border: none;
-                    border-radius: 5px;
-                    background-color: #038C40; /* Green button */
-                    color: white;
-                    cursor: pointer;
-                    transition: background-color 0.3s ease;
-                }}
-                button.homepage-btn:hover {{
-                    background-color: #026C30; /* Darker green on hover */
-                }}
-                pre {{
-                    text-align: left;
-                    white-space: pre-wrap;
-                    font-size: 14px;
-                    color: #333;
-                    margin-top: 20px;
-                    background: #f8f9fa;
-                    padding: 10px;
-                    border-radius: 5px;
-                    overflow-x: auto;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <button class="go-back-btn" onclick="window.location.href='/'">⬅️ Go Back</button>
-                <h2>✅ Resume Processed & Formatted Successfully!</h2>
-                <a href='/download' download class="download-btn">📄 Download Formatted Resume</a>
-                <br>
-                <button class="homepage-btn" onclick="window.location.href='https://canary-careers.com/'">🏠 Go to Homepage</button>
-                <pre>{str(compiled_resume_text).replace('<', '&lt;').replace('>', '&gt;')}</pre>
-            </div>
-        </body>
-        </html>
-    """
+    return render_template('result.html', compiled_resume_text=compiled_resume_text)
 
 @app.route('/download')
 def download():
