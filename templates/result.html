@@ -8,17 +8,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>Resume Writer AI 📄</h1>
+        <h1>Resume Writer AI </h1>
         
         <div class="subtitle">
             <span class="black">by Canary</span> <span class="green">Careers</span>
         </div>
         <h2>✅ Resume Processed & Formatted Successfully!</h2>
         <button class="homepage-btn" onclick="window.open('https://canary-careers.com/', '_blank')">🏠 Canary Careers Homepage</button>
-        <a href="/download" download class="download-btn">📄 Download Formatted Resume</a>
-        <br>
-        <button class="go-back-btn" onclick="window.location.href='/'">⬅️ Go Back</button>
-        <pre>{{ compiled_resume_text | safe }}</pre>
-    </div>
+        <div class="button-group">
+            <a href="/download" download class="download-btn">Download Formatted Resume</a>
+            <button class="go-back-btn" onclick="window.location.href='/'">Go Back</button>
+        </div>
+        <div class="markdown-content">{{ compiled_resume_html | safe }}</div>    </div>
 </body>
 </html>
