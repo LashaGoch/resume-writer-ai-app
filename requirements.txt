@@ -4,3 +4,4 @@ python-docx
 crewai
 python-dotenv
 openai
+markdown
