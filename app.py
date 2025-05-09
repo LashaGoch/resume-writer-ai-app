@@ -4,13 +4,38 @@ from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt, RGBColor
 from crewai import Crew, Agent, Task
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+
+# Authentication credentials
+USERNAME = "canary"
+PASSWORD = "resume2025"
+
+# Authentication function
+def check_auth(username, password):
+    """Check if a username/password combination is valid."""
+    return username == USERNAME and password == PASSWORD
+
+def authenticate():
+    """Send a 401 response to prompt for credentials."""
+    return Response(
+        "Could not verify your access level for that URL.\n"
+        "You have to login with proper credentials", 401,
+        {"WWW-Authenticate": 'Basic realm="Login Required"'}
+    )
+
+@app.before_request
+def require_auth():
+    """Require authentication for all routes."""
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+    
 
 def extract_text_from_docx(file):
     document = Document(file)
@@ -333,7 +358,6 @@ def process_resume():
             agent=education_writer,
             expected_output= "Each education entry is on one line: University • Degree.\n"
             "Create title in bold: Education."
-            
         ),
         Task(
             description=f"Extract certifications from this resume. Format each entry on one line.\n\nResume:\n{resume_text}",
