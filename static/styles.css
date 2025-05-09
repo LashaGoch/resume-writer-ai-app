@@ -109,10 +109,30 @@ button.go-back-btn {
     font-weight: bold;
     border: none;
     border-radius: 5px;
-    background-color: #038C40; /* Green button */
+    background-color: #555; /* Gray button */
     color: white;
     cursor: pointer;
     transition: background-color 0.3s ease;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center; /* Center the buttons horizontally */
+    gap: 10px; /* Add spacing between the buttons */
+    margin-top: 20px; /* Add some spacing above the button group */
+    margin-bottom: 20px; /* Add spacing below the button group */
+}
+
+.download-btn, .go-back-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
 }
 
 button.homepage-btn:hover {
@@ -135,8 +155,9 @@ button.homepage-btn {
 }
 
 button.go-back-btn:hover {
-    background-color: #026C30; /* Darker green on hover */
+    background-color: #333; /* Darker gray on hover */
 }
+
 
 pre {
     text-align: left;
@@ -148,4 +169,20 @@ pre {
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
+}
+
+.markdown-content {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    text-align: left; /* Align content to the left */
+}
+
+.markdown-content p {
+    margin: 10px 0; /* Add spacing between paragraphs */
+    line-height: 1.5; /* Adjust line spacing within paragraphs */
 }
