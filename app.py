@@ -10,6 +10,7 @@ from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 import re
 
+
 # Load environment variables
 load_dotenv()
 
@@ -518,125 +519,6 @@ def process_resume():
     return render_template('result.html', compiled_resume_html=compiled_resume_html)
     # return render_template('result.html', compiled_resume_text=compiled_resume_text)
     # Build context for the new format (replace with actual extraction logic)
-
-
-
-def build_context_from_ai_output(ai_output):
-    # Helper to extract the section between two agent headers
-    def extract_section(agent_name, text):
-        pattern = rf"# Agent: {re.escape(agent_name)}\s*## Final Answer:\s*(.*?)(?=\n# Agent: |\Z)"
-        match = re.search(pattern, text, re.DOTALL)
-        return match.group(1).strip() if match else ""
-
-    # Extract fields
-    top_keywords_str = extract_section("Keyword Generator Expert", ai_output)
-    # Try to eval the list if possible, else fallback to splitting
-    try:
-        top_keywords = eval(top_keywords_str)
-    except Exception:
-        top_keywords = [kw.strip() for kw in re.split(r",|\n", top_keywords_str) if kw.strip()]
-
-    summary_text = extract_section("Senior Writer for Summary Section", ai_output)
-    summary_lines = [line.strip() for line in summary_text.split('\n') if line.strip() and not line.lower().startswith("**summary**")]
-    # Use first 3 non-empty lines as summaries, or join paragraphs if needed
-    summary_1 = summary_lines[0] if len(summary_lines) > 0 else ""
-    summary_2 = summary_lines[1] if len(summary_lines) > 1 else ""
-    summary_3 = summary_lines[2] if len(summary_lines) > 2 else ""
-
-    expertise_text = extract_section("Senior Writer for Areas of Expertise Section", ai_output)
-    # Remove header and split by • or newlines
-    expertise_keywords = re.split(r"•|\n", expertise_text)
-    expertise_keywords = [kw.strip() for kw in expertise_keywords if kw.strip()]
-    # Pad to 9 items
-    while len(expertise_keywords) < 9:
-        expertise_keywords.append("")
-
-    achievements_text = extract_section("Senior Writer for Achievements Section", ai_output)
-    # Remove header and split by lines starting with -
-    notable_achievements = re.findall(r"- \*\*(.*?):\*\* (.*)", achievements_text)
-    notable_achievements = [f"{label}: {text}" for label, text in notable_achievements]
-    # Pad to 3 items
-    while len(notable_achievements) < 3:
-        notable_achievements.append("")
-
-    # Experience: parse job blocks
-    experience_text = extract_section("Senior Job Description Writer", ai_output)
-    experience_blocks = re.split(r"\n\n(?=\*\*)", experience_text)
-    experience = []
-    for block in experience_blocks:
-        lines = [l.strip() for l in block.split('\n') if l.strip()]
-        if not lines:
-            continue
-        # Parse company, title, dates, description, achievements
-        company_line = lines[0] if len(lines) > 0 else ""
-        title_line = lines[1] if len(lines) > 1 else ""
-        dates_line = lines[2] if len(lines) > 2 else ""
-        description = ""
-        achievements = []
-        for line in lines[3:]:
-            if line.startswith("- **"):
-                m = re.match(r"- \*\*(.*?):\*\* (.*)", line)
-                if m:
-                    achievements.append({"label": m.group(1), "text": m.group(2)})
-            else:
-                description += line + " "
-        # Extract company and location
-        company, location = "", ""
-        m = re.match(r"\*\*(.*?) – (.*?)\*\*", company_line)
-        if m:
-            company, location = m.group(1), m.group(2)
-        # Extract title and dates
-        title, dates = "", ""
-        m = re.match(r"\*\*(.*?) \| (.*?)\*\*", title_line)
-        if m:
-            title, dates = m.group(1), m.group(2)
-        experience.append({
-            "company": company,
-            "location": location,
-            "title": title,
-            "dates": dates,
-            "description": description.strip(),
-            "achievements": achievements
-        })
-
-    # Additional Experience (optional, can be appended to experience)
-    add_exp_text = extract_section("Senior Writer for Additional Experience Section", ai_output)
-    # Not parsed here, but you can add similar logic if needed
-
-    # Education
-    education_text = extract_section("Senior Writer for Education Section", ai_output)
-    education = []
-    for line in education_text.split('\n'):
-        m = re.match(r"(.*?) • (.*)", line.strip())
-        if m:
-            institution, credential = m.group(1), m.group(2)
-            education.append({"institution": institution, "location": "", "credential": credential})
-
-    # Certifications
-    cert_text = extract_section("Senior Writer for Certifications Section", ai_output)
-    certifications = []
-    for line in cert_text.split('\n'):
-        if line.strip():
-            certifications.append({"institution": "", "location": "", "credential": line.strip()})
-
-    # You may want to extract full_name, location, phone, email, LinkedIn from another agent or input form
-    context = {
-        "full_name": "Full Name",  # Replace with actual value if available
-        "location": "City, State", # Replace with actual value if available
-        "phone": "555-555-5555",   # Replace with actual value if available
-        "email": "email@example.com", # Replace with actual value if available
-        "LinkedIn": "linkedin.com/in/username", # Replace with actual value if available
-        "top_keywords": top_keywords,
-        "summary_1": summary_1,
-        "summary_2": summary_2,
-        "summary_3": summary_3,
-        "expertise_keywords": expertise_keywords,
-        "notable_achievements": notable_achievements,
-        "experience": experience,
-        "education": education,
-        "certifications": certifications
-    }
-    return context
 
 
 
