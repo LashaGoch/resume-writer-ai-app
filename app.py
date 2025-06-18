@@ -9,8 +9,6 @@ from crewai import Crew, Agent, Task
 from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 import re
-from templates.rendering import render_new_format
-
 
 # Load environment variables
 load_dotenv()
