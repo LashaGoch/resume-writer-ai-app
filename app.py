@@ -1,12 +1,16 @@
 import os
 from dotenv import load_dotenv
 from docx import Document
+from docxtpl import DocxTemplate
+import json
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt, RGBColor
 from crewai import Crew, Agent, Task
 from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 import re
+from templates.rendering import render_new_format
+
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +45,39 @@ def require_auth():
 def extract_text_from_docx(file):
     document = Document(file)
     return "\n".join([para.text for para in document.paragraphs])
+
+
+def clean_json_block(text: str) -> str:
+    """Clean triple-backtick-wrapped JSON content."""
+    text = text.strip()
+    if text.startswith("```json"):
+        return text[7:].strip("` \n")
+    elif text.startswith("```"):
+        return text.strip("` \n")
+    return text
+
+def pad_list(lst, length, filler=""):
+    """Pad or truncate list to the desired length."""
+    return lst + [filler] * (length - len(lst)) if len(lst) < length else lst[:length]
+
+
+def render_new_format(context, template_filename="TraditionalFormat.docx", output_path="Final_Resume.docx"):
+    try:
+        # Get absolute paths
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(base_dir, 'templates', template_filename)
+        output_path = os.path.join(base_dir, output_path)
+        
+        print(f"Template path: {template_path}")
+        print(f"Output path: {output_path}")
+        
+        doc = DocxTemplate(template_path)
+        doc.render(context)
+        doc.save(output_path)
+        return True
+    except Exception as e:
+        print(f"Error in render_new_format: {e}")
+        return False
 
 def add_formatted_paragraph(doc, text, font_name='Calibri Light', font_size=Pt(10), line_spacing=Pt(12), space_after=Pt(1)):
     """
@@ -250,83 +287,87 @@ def process_resume():
         return "OpenAI API Key not found!", 500
 
     # Define CrewAI agents
+
+    # Agent to extract name, contact, location
+    name_generator = Agent(
+        role="Name Generator",
+        goal="Extract structured personal information from a resume in structured JSON format.",
+        backstory="An expert at reading resumes and identifying core personal information including name, location, phone number, email, and LinkedIn.",
+        model="gpt-4o",
+        verbose=True,
+        allow_delegation=False
+    )
+
+    # Agent to extract ATS-friendly keywords
     keyword_generator = Agent(
-        role="Keyword Generator Expert",
-        goal="Suggest top 5 ATS-proof keywords based on resume and job title.",
-        backstory="An expert in optimizing resumes for applicant tracking systems.",
+        role="Keyword Generator",
+        goal="Extract top 5 ATS-optimized keywords from resume content in structured JSON format.",
+        backstory="An expert in parsing resumes and selecting the most relevant and strategic keywords that improve applicant tracking system performance.",
         model="gpt-4o",
         verbose=True,
         allow_delegation=False
     )
 
     summary_writer = Agent(
-        role="Senior Writer for Summary Section",
-        goal="Create a three-paragraph ATS-proof summary from the resume. Max two lines on each paragraph.",
-        backstory="Writes concise professional summaries tailored to job title.",
+        role="Summary Writer",
+        goal="Generate a concise 3-paragraph professional summary from a resume in structured JSON format.",
+        backstory="An expert in creating ATS-optimized summaries tailored to the candidate's background. Each paragraph must be a maximum of two lines.",
         model="gpt-4o",
         verbose=True,
         allow_delegation=False
     )
 
     expertise_writer = Agent(
-        role="Senior Writer for Areas of Expertise Section",
-        goal="Generate 9 expertise keywords in 3 columns, 3 rows format.",
-        backstory="Suggests strong area of expertise keywords for resumes.",
+        role="Areas of Expertise Writer",
+        goal="Generate 9 expertise keywords in 3x3 format without repeating top ATS keywords in structured JSON format.",
+        backstory="Crafts strong, diverse area of expertise sections for resumes using relevant industry terminology.",
         model="gpt-4o",
         verbose=True,
         allow_delegation=False
     )
 
     achievement_writer = Agent(
-        role="Senior Writer for Achievements Section",
-        goal="Write 3–5 measurable achievements bullet points.",
-        backstory="Creates bullet points that demonstrate quantifiable success.",
+        role="Achievements Writer",
+        goal="Write 3–5 measurable achievement bullet points in structured JSON format.",
+        backstory="Creates concise, impactful resume bullet points that showcase quantifiable outcomes and career highlights.",
         model="gpt-4o",
         verbose=True,
         allow_delegation=False
     )
 
+
     experience_writer = Agent(
-        role="Senior Job Description Writer",
-        goal="Create job descriptions for 3 most recent roles with company info, title, dates, summary, and measurable impact in bullet points.",
-        backstory="Expert in writing clean and structured work experience entries for resumes. Do not use first person style.",
+        role="Job Description Writer",
+        goal="Generate clean, ATS-friendly job experience sections in structured JSON format.",
+        backstory="Expert in resume writing who creates well-formatted, third-person professional experience entries. Each includes company info, title, dates, a brief summary, and 1–4 measurable achievements.",
         model="gpt-4o",
         verbose=True,
         allow_delegation=False
     )
 
     additional_exp_writer = Agent(
-        role="Senior Writer for Additional Experience Section",
-        goal="List older work experience entries in two-line format.",
-        backstory="List past work experiences in a compact and clear way.",
-        model="gpt-4o",
+        role="Additional Experience Writer",
+        goal="Return earlier work experience entries in structured JSON format.",
+        backstory="Summarizes older work experience in a clean, compact structure including company, location, title, and dates.",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
 
     education_writer = Agent(
-        role="Senior Writer for Education Section",
-        goal="List education, one per line.",
-        backstory="Summarizes education for resumes.",
-        model="gpt-4o",
+        role="Education Writer",
+        goal="Extract and return education entries in structured JSON format.",
+        backstory="An expert in parsing and formatting educational history for professional resumes.",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
 
     cert_writer = Agent(
-        role="Senior Writer for Certifications Section",
-        goal="List certifications, one per line.",
-        backstory="List certifications for resumes.",
-        model="gpt-4o",
-        verbose=True,
-        allow_delegation=False
-    )
-
-    language_writer = Agent(
-        role="Senior Writer for Language Section",
-        goal="List known languages in a single line.",
-        backstory="Formats multilingual proficiencies.",
-        model="gpt-4o",
+        role="Certifications Writer",
+        goal="Extract and return certification entries in structured JSON format.",
+        backstory="Specialist in identifying and formatting certifications and credentials from resumes.",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -334,78 +375,220 @@ def process_resume():
 
     # Define tasks
     tasks = [
-        Task(
-            description=f"Given the following resume, generate the top 5 keywords that are optimized for applicant tracking systems (ATS).\n\nResume:\n{resume_text}",
-            agent=keyword_generator,
-            expected_output="A list of 5 ATS-optimized keywords.\n"
-            "The top header must include: Full name, city/state (or location), phone number, email, and LinkedIn – all in one or two compact lines.\n"
-            "The professional title must be bold and centered directly under the contact info.\n"
-            "On the next line, add 4–5 ATS-optimized keywords in a single line spaced with •."
-        ),
-        Task(
-            description=f"Using the resume, write a 3-paragraph professional summary. Each paragraph should be two lines max. Format your response with a blank line between each paragraph.\n\nResume:\n{resume_text}",
-            agent=summary_writer,
-            expected_output="Three short paragraphs summarizing the candidate, with a blank line between each paragraph.\n"
-            "Create title in bold: **Summary**\n\n"
-            "First paragraph\n\n"
-            "Second paragraph\n\n"
-            "Third paragraph"
-        ),
-        Task(
-            description=f"Based on the resume, generate 9 'Areas of Expertise' keywords formatted in 3 columns and 3 rows. Do not repeat the keywords generated by keyword_generator agent.\n\nResume:\n{resume_text}",
-            agent=expertise_writer,
-            expected_output="Nine keywords in a 3x3 grid format without column titles.\n"
-            "Create title in bold: Areas of Expertise. This section is a grid with 9 keywords, arranged in 3 columns and 3 rows, center-aligned or evenly spaced with '•'."
-        ),
-        Task(
-            description=f"From the following resume, write 3–5 bullet points describing notable achievements. Each bullet must be measurable and max 2 lines.\n\nResume:\n{resume_text}",
-            agent=achievement_writer,
-            expected_output="3–5 short bullet points describing notable achievements with metrics or impact.\n"
-            "Bullet points must begin with a bolded action keyword, followed by a colon and a 1–2 line measurable accomplishment.\n"          
-            "Create title in bold: Notable Achievements." 
-        ),
-        Task(
-            description=f"Use this resume to create job descriptions for the 3 most recent roles. For each: line 1 is Company, City, Country; line 2 is Job Title and Dates; followed by a 2-3 line summary and 1–3 bullet points of achievements.\n\nResume:\n{resume_text}",
-            agent=experience_writer,
-            expected_output="3 job experiences formatted as described.\n"
-            "Create  title in bold: Professional Experience.\n"
-            "   - Line 1: Company Name – City, Country\n"
-            "   - Line 2: Job Title | Start Date – End Date\n"
-            "   - Followed by a 2–3 line responsibility summary\n"
-            "   - Then 1–3 bullet points of achievements, each starting with a bolded keyword."
-        ),
-        Task(
-            description=f"Summarize other job experience in the resume using a 2-line format per job. Do not add extra lines or job responsibilities.\n\nResume:\n{resume_text}",
-            agent=additional_exp_writer,
-            expected_output="Older jobs in 2-line format (company + role + dates).\n"
-             "Create title in bold: Additional Experience. Only two lines.\n"
-            "   - Line 1: Company – City, Country. Company in bold.\n"
-            "   - Line 2: Job Title | Start Date – End Date. Job Title in bold.\n"
-            "   - Do not add extra content beyond these lines."
-        ),
-        Task(
-            description=f"Extract education from this resume. Format each entry on one line.\n\nResume:\n{resume_text}",
-            agent=education_writer,
-            expected_output= "Each education entry is on one line: University • Degree.\n"
-            "Create title in bold: Education."
-        ),
-        Task(
-            description=f"Extract certifications from this resume. Format each entry on one line.\n\nResume:\n{resume_text}",
-            agent=cert_writer,
-            expected_output= "Full name of certifications listed, one per line.\n"
-            "Create title in bold: Certifications"
-        ),
-        Task(
-            description=f"List all languages mentioned in the following resume on one line.\n\nResume:\n{resume_text}",
-            agent=language_writer,
-            expected_output="Languages should be listed in one single line, near the bottom. Start with 'Languages:' in bold"
-        )
 
-        ]
+        Task(
+            description=(
+                f"Extract the following fields from the resume delimited by < >:\n"
+                f"1. Full Name\n"
+                f"2. Location (City, State)\n"
+                f"3. Phone Number\n"
+                f"4. Email Address\n"
+                f"5. LinkedIn URL\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=name_generator,
+            expected_output=(
+                "Return a JSON object with the following keys:\n"
+                "{\n"
+                '  "full_name": "Jasmine Taylor",\n'
+                '  "location": "New York, NY",\n'
+                '  "phone": "555-123-4567",\n'
+                '  "email": "jasmine@example.com",\n'
+                '  "LinkedIn": "linkedin.com/in/jasminetaylor"\n'
+                "}"
+            )
+        ),
+
+        Task(
+            description=(
+                f"Read the resume below (delimited by < >) and extract the top 5 keywords optimized for Applicant Tracking Systems (ATS). "
+                f"These should be skills or phrases that match professional strengths and job market terminology.\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=keyword_generator,
+            expected_output=(
+                "Return a JSON list of exactly 5 strings, like:\n"
+                '["Strategic Planning", "Cross-functional Leadership", "Data Analysis", "Agile Methodology", "Process Improvement"]'
+            )
+        ),
+
+        Task(
+            description=(
+                f"Read the resume below (delimited by < >) and write a concise 3-paragraph professional summary. "
+                f"Each paragraph should be a maximum of 2 lines.\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=summary_writer,
+            expected_output=(
+                "Return a JSON object with the following structure:\n\n"
+                "{\n"
+                '  "summaries": [\n'
+                '    "Paragraph 1",\n'
+                '    "Paragraph 2",\n'
+                '    "Paragraph 3"\n'
+                "  ]\n"
+                "}\n\n"
+                "Ensure each paragraph is complete, ATS-friendly, and aligned with modern resume standards."
+            )
+        ),
+
+        Task(
+            description=(
+                f"From the resume below, generate 9 unique 'Areas of Expertise' keywords arranged for visual formatting in 3 columns and 3 rows. "
+                f"Do not repeat the top keywords already used earlier. Keep all keywords concise and resume-appropriate.\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=expertise_writer,
+            expected_output=(
+                "Return a JSON object like this:\n"
+                '{\n'
+                '  "expertise_keywords": [\n'
+                '    "Leadership", "Agile", "Data-Driven Strategy",\n'
+                '    "Budget Management", "Digital Marketing", "Campaign Management",\n'
+                '    "Brand Identity & Growth", "Product Innovation", "Project Management"\n'
+                '  ]\n'
+                '}\n\n'
+                "Only include keyword phrases. No explanations, no formatting, no column titles."
+            )
+        ),
+
+        Task(
+            description=(
+                f"Based on the resume content below (delimited by < >), write 3–5 bullet points describing notable professional achievements. "
+                f"Each bullet must be measurable, impactful, and no more than 2 lines long.\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=achievement_writer,
+            expected_output=(
+                "Return a JSON object with this structure:\n"
+                "{\n"
+                '  "notable_achievements": [\n'
+                '    "Achievement 1",\n'
+                '    "Achievement 2",\n'
+                '    "Achievement 3"\n'
+                "  ]\n"
+                "}\n\n"
+                "Only return the JSON. Do not include commentary, headers, or formatting."
+            )
+        ),
+
+        Task(
+            description=(
+                f"Use the resume below (delimited by < >) to write structured job descriptions for the 2 most recent roles. "
+                f"For each role, include:\n"
+                f"- Company name\n"
+                f"- Location (City, State or Country)\n"
+                f"- Title\n"
+                f"- Dates of employment\n"
+                f"- 2–3 line summary of responsibilities\n"
+                f"- 1–4 achievement bullet points with metrics\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=experience_writer,
+            expected_output=(
+                "Return a JSON object with the following structure:\n\n"
+                "{\n"
+                '  "experience": [\n'
+                "    {\n"
+                '      "company": "Google",\n'
+                '      "location": "Mountain View, CA",\n'
+                '      "title": "Senior Program Manager",\n'
+                '      "dates": "2021–Present",\n'
+                '      "description": "Leads global programs and manages strategic initiatives to deliver scalable business results.",\n'
+                '      "achievements": [\n'
+                '        {"label": "Led", "text": "global implementation of OKRs across 7 regions."},\n'
+                '        {"label": "Drove", "text": "$3M in savings via vendor consolidation."}\n'
+                '        {"label": "Designed", "text": "a performance dashboard adopted by all departments within 6 months."}\n'
+                '        {"label": "Secured", "text": " board approval for a major cross-functional restructuring."}\n'
+                '      ]\n'
+                "    },\n"
+                "    ...\n"
+                "  ]\n"
+                "}"
+            )
+        ),
+
+        Task(
+            description=(
+                f"From the resume below (delimited by < >), extract earlier/older work experience entries (not among the most recent 2–3 roles). "
+                f"For each job, return:\n"
+                f"- Company name\n"
+                f"- Location (City, State)\n"
+                f"- Job Title\n"
+                f"- Dates of Employment\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=additional_exp_writer,
+            expected_output=(
+                "Return a JSON object in the following structure:\n\n"
+                "{\n"
+                '  "earlier_experience": [\n'
+                "    {\n"
+                '      "company": "Duke University",\n'
+                '      "location": "Durham, North Carolina",\n'
+                '      "title": "Project Coordinator (Time-Limited Grant)",\n'
+                '      "dates": "Jan 2011 – Jan 2012"\n'
+                "    },\n"
+                "    ...\n"
+                "  ]\n"
+                "}\n\n"
+                "Do not include responsibilities, bullet points, or extra commentary — just the structured entries."
+            )
+        ),
+
+        Task(
+            description=(
+                f"From the resume below (delimited by < >), extract all education entries. "
+                f"For each entry, return:\n"
+                f"- Institution name\n"
+                f"- Location (City, State or Online)\n"
+                f"- Credential (e.g. degree, diploma)\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=education_writer,
+            expected_output=(
+                "Return a JSON object with this structure:\n\n"
+                "{\n"
+                '  "education": [\n'
+                "    {\n"
+                '      "institution": "Harvard University",\n'
+                '      "location": "Cambridge, MA",\n'
+                '      "credential": "Master of Business Administration"\n'
+                "    },\n"
+                "    ...\n"
+                "  ]\n"
+                "}"
+            )
+        ),
+
+        Task(
+            description=(
+                f"From the resume below (delimited by < >), extract all professional certifications or credentials. "
+                f"For each entry, return:\n"
+                f"- Institution (e.g. issuing organization)\n"
+                f"- Location (e.g. Online or city)\n"
+                f"- Credential (e.g. certificate title)\n\n"
+                f"Resume:\n<{resume_text}>"
+            ),
+            agent=cert_writer,
+            expected_output=(
+                "Return a JSON object with this structure:\n\n"
+                "{\n"
+                '  "certifications": [\n'
+                "    {\n"
+                '      "institution": "Project Management Institute",\n'
+                '      "location": "Online",\n'
+                '      "credential": "Project Management Professional (PMP)"\n'
+                "    },\n"
+                "    ...\n"
+                "  ]\n"
+                "}"
+            )
+        )
+    ]
 
     # Run the crew
-    crew = Crew(agents=[keyword_generator, summary_writer, expertise_writer, achievement_writer,
-        experience_writer, additional_exp_writer, education_writer, cert_writer, language_writer
+    crew = Crew(agents=[name_generator, keyword_generator, summary_writer, expertise_writer, achievement_writer, experience_writer, additional_exp_writer, education_writer, cert_writer
     ], tasks=tasks, verbose=True)
     
     result = crew.kickoff()
@@ -416,13 +599,223 @@ def process_resume():
             compiled_resume_text += f"\n\n{task.output}"
 
     write_text_to_docx(str(compiled_resume_text).strip(), output_path)
+        # Create context with default values
+    try:
+        # Load template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'TraditionalFormat.docx')
+        doc = DocxTemplate("templates/TraditionalFormat.docx")
+        context = {}
+
+        # Extract Data from Crew Tasks
+        for task in crew.tasks:
+            if hasattr(task, 'output') and task.output:
+                raw = (
+                    getattr(task.output, 'raw_output', None)
+                    or getattr(task.output, 'value', None)
+                    or str(task.output)
+                )
+                cleaned = clean_json_block(raw)
+
+                try:
+                    parsed = json.loads(cleaned)
+
+                    if isinstance(parsed, dict):
+                        context.update(parsed)
+                    elif isinstance(parsed, list) and task.agent.role == "Keyword Generator":
+                        context["top_keywords"] = parsed
+
+                except Exception as e:
+                    print(f"❌ Could not parse output from {task.agent.role}:\n{cleaned[:300]}\nError: {e}")
+
+        # Pad All Context Fields Required by the Template
+        context["summaries"] = pad_list(context.get("summaries", []), 3, "")
+        context["expertise_keywords"] = pad_list(context.get("expertise_keywords", []), 9, "")
+        context["notable_achievements"] = pad_list(context.get("notable_achievements", []), 3, "")
+
+        # Nested structure for experience
+        empty_achievement = {"label": "", "text": ""}
+        default_experience = {
+            "company": "", "location": "", "title": "", "dates": "", "description": "",
+            "achievements": pad_list([], 4, empty_achievement)
+        }
+        experience_raw = context.get("experience", [])
+        context["experience"] = pad_list(
+            [exp if "achievements" in exp else {**exp, "achievements": []} for exp in experience_raw],
+            2,
+            default_experience
+        )
+        for exp in context["experience"]:
+            exp["achievements"] = pad_list(exp.get("achievements", []), 4, empty_achievement)
+
+        # Optional sections
+        for key in ["earlier_experience", "education", "certifications"]:
+            context[key] = context.get(key, [])
+
+        # Final Validation and Render
+        required_keys = ["experience", "earlier_experience", "education", "certifications"]
+        missing = [k for k in required_keys if k not in context]
+        if missing:
+            print(f"⚠️ Missing fields in context: {missing}")
+        else:
+            output_path = os.path.join(os.path.dirname(__file__), 'Final_Resume.docx')
+            doc.render(context)
+            doc.save(output_path)
+            print("✅ Resume rendered and saved as Final_Resume.docx")
+
+    except Exception as e:
+        print(f"Error processing template: {e}")
+
+    # Return the template as before
     compiled_resume_html = markdown(compiled_resume_text)
     return render_template('result.html', compiled_resume_html=compiled_resume_html)
-    #return render_template('result.html', compiled_resume_text=compiled_resume_text)
+    # return render_template('result.html', compiled_resume_text=compiled_resume_text)
+    # Build context for the new format (replace with actual extraction logic)
+
+
+
+def build_context_from_ai_output(ai_output):
+    # Helper to extract the section between two agent headers
+    def extract_section(agent_name, text):
+        pattern = rf"# Agent: {re.escape(agent_name)}\s*## Final Answer:\s*(.*?)(?=\n# Agent: |\Z)"
+        match = re.search(pattern, text, re.DOTALL)
+        return match.group(1).strip() if match else ""
+
+    # Extract fields
+    top_keywords_str = extract_section("Keyword Generator Expert", ai_output)
+    # Try to eval the list if possible, else fallback to splitting
+    try:
+        top_keywords = eval(top_keywords_str)
+    except Exception:
+        top_keywords = [kw.strip() for kw in re.split(r",|\n", top_keywords_str) if kw.strip()]
+
+    summary_text = extract_section("Senior Writer for Summary Section", ai_output)
+    summary_lines = [line.strip() for line in summary_text.split('\n') if line.strip() and not line.lower().startswith("**summary**")]
+    # Use first 3 non-empty lines as summaries, or join paragraphs if needed
+    summary_1 = summary_lines[0] if len(summary_lines) > 0 else ""
+    summary_2 = summary_lines[1] if len(summary_lines) > 1 else ""
+    summary_3 = summary_lines[2] if len(summary_lines) > 2 else ""
+
+    expertise_text = extract_section("Senior Writer for Areas of Expertise Section", ai_output)
+    # Remove header and split by • or newlines
+    expertise_keywords = re.split(r"•|\n", expertise_text)
+    expertise_keywords = [kw.strip() for kw in expertise_keywords if kw.strip()]
+    # Pad to 9 items
+    while len(expertise_keywords) < 9:
+        expertise_keywords.append("")
+
+    achievements_text = extract_section("Senior Writer for Achievements Section", ai_output)
+    # Remove header and split by lines starting with -
+    notable_achievements = re.findall(r"- \*\*(.*?):\*\* (.*)", achievements_text)
+    notable_achievements = [f"{label}: {text}" for label, text in notable_achievements]
+    # Pad to 3 items
+    while len(notable_achievements) < 3:
+        notable_achievements.append("")
+
+    # Experience: parse job blocks
+    experience_text = extract_section("Senior Job Description Writer", ai_output)
+    experience_blocks = re.split(r"\n\n(?=\*\*)", experience_text)
+    experience = []
+    for block in experience_blocks:
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        if not lines:
+            continue
+        # Parse company, title, dates, description, achievements
+        company_line = lines[0] if len(lines) > 0 else ""
+        title_line = lines[1] if len(lines) > 1 else ""
+        dates_line = lines[2] if len(lines) > 2 else ""
+        description = ""
+        achievements = []
+        for line in lines[3:]:
+            if line.startswith("- **"):
+                m = re.match(r"- \*\*(.*?):\*\* (.*)", line)
+                if m:
+                    achievements.append({"label": m.group(1), "text": m.group(2)})
+            else:
+                description += line + " "
+        # Extract company and location
+        company, location = "", ""
+        m = re.match(r"\*\*(.*?) – (.*?)\*\*", company_line)
+        if m:
+            company, location = m.group(1), m.group(2)
+        # Extract title and dates
+        title, dates = "", ""
+        m = re.match(r"\*\*(.*?) \| (.*?)\*\*", title_line)
+        if m:
+            title, dates = m.group(1), m.group(2)
+        experience.append({
+            "company": company,
+            "location": location,
+            "title": title,
+            "dates": dates,
+            "description": description.strip(),
+            "achievements": achievements
+        })
+
+    # Additional Experience (optional, can be appended to experience)
+    add_exp_text = extract_section("Senior Writer for Additional Experience Section", ai_output)
+    # Not parsed here, but you can add similar logic if needed
+
+    # Education
+    education_text = extract_section("Senior Writer for Education Section", ai_output)
+    education = []
+    for line in education_text.split('\n'):
+        m = re.match(r"(.*?) • (.*)", line.strip())
+        if m:
+            institution, credential = m.group(1), m.group(2)
+            education.append({"institution": institution, "location": "", "credential": credential})
+
+    # Certifications
+    cert_text = extract_section("Senior Writer for Certifications Section", ai_output)
+    certifications = []
+    for line in cert_text.split('\n'):
+        if line.strip():
+            certifications.append({"institution": "", "location": "", "credential": line.strip()})
+
+    # You may want to extract full_name, location, phone, email, LinkedIn from another agent or input form
+    context = {
+        "full_name": "Full Name",  # Replace with actual value if available
+        "location": "City, State", # Replace with actual value if available
+        "phone": "555-555-5555",   # Replace with actual value if available
+        "email": "email@example.com", # Replace with actual value if available
+        "LinkedIn": "linkedin.com/in/username", # Replace with actual value if available
+        "top_keywords": top_keywords,
+        "summary_1": summary_1,
+        "summary_2": summary_2,
+        "summary_3": summary_3,
+        "expertise_keywords": expertise_keywords,
+        "notable_achievements": notable_achievements,
+        "experience": experience,
+        "education": education,
+        "certifications": certifications
+    }
+    return context
+
+
+
+    
 
 @app.route('/download')
 def download():
     return send_file("new.docx", as_attachment=True)
+
+@app.route('/download_new_format')
+def download_new_format():
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_dir, "Final_Resume.docx")
+        
+        if not os.path.exists(file_path):
+            return "Resume file not found. Please process your resume first.", 404
+            
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name="Final_Resume.docx",
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+        return f"Error downloading file: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
