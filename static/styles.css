@@ -186,3 +186,43 @@ pre {
     margin: 10px 0; /* Add spacing between paragraphs */
     line-height: 1.5; /* Adjust line spacing within paragraphs */
 }
+
+
+
+.markdown-content h1 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+.markdown-content h2 {
+    color: #34495e;
+    margin-top: 25px;
+}
+
+.markdown-content h3 {
+    color: #2980b9;
+}
+
+.markdown-content ul {
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+.markdown-content ul li:before {
+    content: "•";
+    color: #3498db;
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+.markdown-content a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.markdown-content a:hover {
+    text-decoration: underline;
+}
