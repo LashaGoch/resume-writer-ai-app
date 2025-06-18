@@ -9,6 +9,8 @@ from crewai import Crew, Agent, Task
 from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 import re
+from templates.rendering import render_new_format
+
 
 # Load environment variables
 load_dotenv()
@@ -116,148 +118,7 @@ def add_formatted_paragraph(doc, text, font_name='Calibri Light', font_size=Pt(1
     
     return para
 
-def write_text_to_docx(text, file_path):
-    doc = Document()
 
-    # Add full name (Calibri Light, 18pt)
-    full_name = "Full Name"  # Replace with actual full name if available
-    name_paragraph = doc.add_paragraph()
-    name_run = name_paragraph.add_run(full_name)
-    name_run.font.name = 'Calibri Light'
-    name_run.font.size = Pt(18)
-    name_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-
-    # Add job title (Calibri Light, 17pt, blue color)
-    job_title = "Job Title"  # Replace with actual job title if available
-    title_paragraph = doc.add_paragraph()
-    title_run = title_paragraph.add_run(job_title)
-    title_run.font.name = 'Calibri Light'
-    title_run.font.size = Pt(17)
-    title_run.font.color.rgb = RGBColor(0, 112, 192)  # Blue color
-    title_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-
-    # Split the text into sections based on titles
-    sections = text.split("\n\n")
-    for section in sections:
-        section = section.strip()
-        if not section:
-            continue
-
-        # Check for section titles and format them
-        if section.startswith("**Summary**"):
-            heading = doc.add_heading("Summary", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            
-            # Extract and clean summary content
-            clean_content = section.replace("**Summary**", "").strip()
-            
-            # Look for paragraphs separated by blank lines
-            paragraphs = []
-            current_para = []
-            
-            # Split by lines first
-            lines = clean_content.split('\n')
-            for line in lines:
-                line = line.strip()
-                if not line and current_para:  # Empty line and we have content
-                    paragraphs.append(' '.join(current_para))
-                    current_para = []
-                elif line:  # Non-empty line
-                    current_para.append(line)
-            
-            # Don't forget to add the last paragraph if there is one
-            if current_para:
-                paragraphs.append(' '.join(current_para))
-            
-            # If we somehow didn't get at least one paragraph, fall back to the original method
-            if not paragraphs:
-                paragraphs = [clean_content]
-            
-            # Format each paragraph
-            for paragraph_text in paragraphs:
-                if not paragraph_text:
-                    continue
-                
-                add_formatted_paragraph(doc, paragraph_text, space_after=Pt(6))
-
-        elif section.startswith("**Areas of Expertise**"):
-            heading = doc.add_heading("Areas of Expertise", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            expertise_keywords = section.replace("**Areas of Expertise**", "").strip().split("\n")
-            for keyword in expertise_keywords:
-                add_formatted_paragraph(doc, keyword, space_after=Pt(0))
-
-        elif section.startswith("**Notable Achievements**"):
-            heading = doc.add_heading("Notable Achievements", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            achievements = section.replace("**Notable Achievements**", "").strip().split("\n")
-            for ach in achievements:
-                add_formatted_paragraph(doc, ach)
-
-        elif section.startswith("**Professional Experience**"):
-            heading = doc.add_heading("Professional Experience", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            experience_entries = section.replace("**Professional Experience**", "").strip().split("\n")
-            for entry in experience_entries:
-                # Use the add_formatted_paragraph function with special handling for this section
-                para = add_formatted_paragraph(doc, entry)
-                # If the entire entry isn't bold, make it bold (company names, etc.)
-                if len(para.runs) == 1 and not para.runs[0].bold:
-                    para.runs[0].bold = True
-
-        elif section.startswith("**Additional Experience**"):
-            heading = doc.add_heading("Additional Experience", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            additional_experience_entries = section.replace("**Additional Experience**", "").strip().split("\n")
-            for entry in additional_experience_entries:
-                add_formatted_paragraph(doc, entry)
-
-        elif section.startswith("**Education**"):
-            heading = doc.add_heading("Education", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            education_entries = section.replace("**Education**", "").strip().split("\n")
-            for edu in education_entries:
-                add_formatted_paragraph(doc, edu)
-
-        elif section.startswith("**Certifications**"):
-            heading = doc.add_heading("Certifications", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            certifications = section.replace("**Certifications**", "").strip().split("\n")
-            for cert in certifications:
-                add_formatted_paragraph(doc, cert)
-            
-            # Add extra space after Certifications section
-            spacing_para = doc.add_paragraph()
-            spacing_para.paragraph_format.space_after = Pt(12)  # Add extra spacing
-
-        elif section.startswith("**Languages**"):
-            heading = doc.add_heading("Languages", level=1)
-            heading_run = heading.runs[0]
-            heading_run.font.name = 'Calibri Light'
-            heading_run.font.size = Pt(12.5)
-            languages_text = section.replace("**Languages:**", "").strip()
-            add_formatted_paragraph(doc, languages_text)
-
-        else:
-            # Add any other content as normal text
-            add_formatted_paragraph(doc, section)
-
-    # Save the document
-    doc.save(file_path)
 
 @app.route('/')
 def home():
@@ -271,14 +132,7 @@ def process_resume():
 
     # Extract text from uploaded resume
     resume_text = extract_text_from_docx(uploaded_file)
-    output_path = "new.docx"
-    
-    # Slice only relevant part of resume for education
-    #education_section = resume_text.split("EDUCATION")[1]
-
-    # Slice only relevant part of resume for experience
-    #experience_section = resume_text.split("EXPERIENCE")[1]
-    
+        
     # Initialize OpenAI key (needed internally by CrewAI)
     openai_api_key = os.getenv('OPENAI_API_KEY')
     if not openai_api_key:
@@ -586,7 +440,8 @@ def process_resume():
     ]
 
     # Run the crew
-    crew = Crew(agents=[name_generator, keyword_generator, summary_writer, expertise_writer, achievement_writer, experience_writer, additional_exp_writer, education_writer, cert_writer
+    crew = Crew(agents=[name_generator, keyword_generator, summary_writer, expertise_writer, 
+        achievement_writer, experience_writer, additional_exp_writer, education_writer, cert_writer
     ], tasks=tasks, verbose=True)
     
     result = crew.kickoff()
@@ -596,8 +451,7 @@ def process_resume():
         if hasattr(task, 'output'):
             compiled_resume_text += f"\n\n{task.output}"
 
-    write_text_to_docx(str(compiled_resume_text).strip(), output_path)
-        # Create context with default values
+    # Clean up the compiled resume text
     try:
         # Load template
         template_path = os.path.join(os.path.dirname(__file__), 'templates', 'TraditionalFormat.docx')
@@ -616,12 +470,10 @@ def process_resume():
 
                 try:
                     parsed = json.loads(cleaned)
-
                     if isinstance(parsed, dict):
                         context.update(parsed)
                     elif isinstance(parsed, list) and task.agent.role == "Keyword Generator":
                         context["top_keywords"] = parsed
-
                 except Exception as e:
                     print(f"❌ Could not parse output from {task.agent.role}:\n{cleaned[:300]}\nError: {e}")
 
@@ -789,12 +641,6 @@ def build_context_from_ai_output(ai_output):
     return context
 
 
-
-    
-
-@app.route('/download')
-def download():
-    return send_file("new.docx", as_attachment=True)
 
 @app.route('/download_new_format')
 def download_new_format():
