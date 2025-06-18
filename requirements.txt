@@ -5,3 +5,6 @@ crewai
 python-dotenv
 openai
 markdown
+docxtpl
+json
+re
