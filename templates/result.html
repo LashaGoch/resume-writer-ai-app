@@ -16,9 +16,12 @@
         <h2>✅ Resume Processed & Formatted Successfully!</h2>
         <button class="homepage-btn" onclick="window.open('https://canary-careers.com/', '_blank')">🏠 Canary Careers Homepage</button>
         <div class="button-group">
-            <a href="/download" download class="download-btn">Download Formatted Resume</a>
+            <a href="{{ url_for('download_new_format') }}" class="download-btn">
+                Download Resume
+            </a>
             <button class="go-back-btn" onclick="window.location.href='/'">Go Back</button>
         </div>
-        <div class="markdown-content">{{ compiled_resume_html | safe }}</div>    </div>
+        <div class="markdown-content">{{ compiled_resume_html | safe }}</div>    
+    </div>
 </body>
 </html>
