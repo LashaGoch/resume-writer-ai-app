@@ -78,44 +78,89 @@ def render_new_format(context, template_filename="TraditionalFormat.docx", outpu
         print(f"Error in render_new_format: {e}")
         return False
 
-def add_formatted_paragraph(doc, text, font_name='Calibri Light', font_size=Pt(10), line_spacing=Pt(12), space_after=Pt(1)):
-    """
-    Add a paragraph with proper formatting, handling bold text marked with asterisks.
-    Text between ** or * will be formatted as bold.
-    """
-    para = doc.add_paragraph()
-    para_format = para.paragraph_format
-    para_format.line_spacing = line_spacing
-    para_format.space_after = space_after
+# Add this function after your existing imports
+def format_resume_markdown(tasks):
+    """Convert AI output to formatted markdown"""
+    markdown_text = ""
     
-    # Find all text between asterisks for bold formatting
-    # This regex finds text between ** or * (single or double asterisks)
-    pattern = r'\*\*(.*?)\*\*|\*(.*?)\*'
-    last_end = 0
-    
-    for match in re.finditer(pattern, text):
-        # Add text before the match
-        if match.start() > last_end:
-            run = para.add_run(text[last_end:match.start()])
-            run.font.name = font_name
-            run.font.size = font_size
-        
-        # Add the bold text - either from group 1 (** **) or group 2 (* *)
-        bold_text = match.group(1) if match.group(1) is not None else match.group(2)
-        run = para.add_run(bold_text)
-        run.font.name = font_name
-        run.font.size = font_size
-        run.bold = True
-        
-        last_end = match.end()
-    
-    # Add any remaining text after the last match
-    if last_end < len(text):
-        run = para.add_run(text[last_end:])
-        run.font.name = font_name
-        run.font.size = font_size
-    
-    return para
+    for task in tasks:
+        if not hasattr(task, 'output'):
+            continue
+            
+        try:
+            # Get raw output and clean it
+            raw = (getattr(task.output, 'raw_output', None) 
+                  or getattr(task.output, 'value', None) 
+                  or str(task.output))
+            cleaned = clean_json_block(raw)
+            data = json.loads(cleaned)
+            
+            # Format based on agent role
+            if task.agent.role == "Name Generator":
+                markdown_text += (
+                    f"# {data.get('full_name', '')}\n"
+                    f"{data.get('location', '')} • {data.get('phone', '')} • "
+                    f"[{data.get('email', '')}](mailto:{data.get('email', '')}) • "
+                    f"[LinkedIn]({data.get('LinkedIn', '')})\n\n"
+                )
+            
+            elif task.agent.role == "Keyword Generator":
+                markdown_text += "## Core Competencies\n"
+                markdown_text += " • ".join(data) + "\n\n"
+            
+            elif task.agent.role == "Summary Writer":
+                markdown_text += "## Professional Summary\n"
+                for summary in data.get('summaries', []):
+                    markdown_text += f"{summary}\n\n"
+            
+            elif task.agent.role == "Areas of Expertise Writer":
+                markdown_text += "## Areas of Expertise\n"
+                keywords = data.get('expertise_keywords', [])
+                # Create 3x3 grid
+                for i in range(0, 9, 3):
+                    row = keywords[i:i+3]
+                    markdown_text += " | ".join(row) + "\n"
+                markdown_text += "\n"
+            
+            elif task.agent.role == "Achievements Writer":
+                markdown_text += "## Notable Achievements\n"
+                for achievement in data.get('notable_achievements', []):
+                    markdown_text += f"* {achievement}\n"
+                markdown_text += "\n"
+            
+            elif task.agent.role == "Job Description Writer":
+                markdown_text += "## Professional Experience\n"
+                for job in data.get('experience', []):
+                    markdown_text += f"### {job.get('company')} – {job.get('location')}\n"
+                    markdown_text += f"**{job.get('title')}** • {job.get('dates')}\n"
+                    markdown_text += f"{job.get('description')}\n\n"
+                    for achievement in job.get('achievements', []):
+                        markdown_text += f"* **{achievement.get('label')}:** {achievement.get('text')}\n"
+                    markdown_text += "\n"
+            
+            elif task.agent.role == "Additional Experience Writer":
+                markdown_text += "## Additional Experience\n"
+                for job in data.get('earlier_experience', []):
+                    markdown_text += (f"**{job.get('company')}** – {job.get('location')}\n"
+                                    f"*{job.get('title')}* • {job.get('dates')}\n\n")
+            
+            elif task.agent.role == "Education Writer":
+                markdown_text += "## Education\n"
+                for edu in data.get('education', []):
+                    markdown_text += (f"**{edu.get('institution')}** • {edu.get('location')}\n"
+                                    f"{edu.get('credential')}\n\n")
+            
+            elif task.agent.role == "Certifications Writer":
+                markdown_text += "## Certifications\n"
+                for cert in data.get('certifications', []):
+                    markdown_text += f"* {cert.get('credential')} – {cert.get('institution')}\n"
+                markdown_text += "\n"
+                
+        except Exception as e:
+            print(f"Error formatting {task.agent.role} output: {e}")
+            
+    return markdown_text
+
 
 
 
@@ -515,7 +560,8 @@ def process_resume():
         print(f"Error processing template: {e}")
 
     # Return the template as before
-    compiled_resume_html = markdown(compiled_resume_text)
+    compiled_resume_html = markdown(format_resume_markdown(crew.tasks))
+    #compiled_resume_html = markdown(compiled_resume_text)
     return render_template('result.html', compiled_resume_html=compiled_resume_html)
     # return render_template('result.html', compiled_resume_text=compiled_resume_text)
     # Build context for the new format (replace with actual extraction logic)
