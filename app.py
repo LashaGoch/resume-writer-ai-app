@@ -215,7 +215,7 @@ def process_resume():
         role="Name Generator",
         goal="Extract structured personal information from a resume in structured JSON format.",
         backstory="An expert at reading resumes and identifying core personal information including name, location, phone number, email, and LinkedIn.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -225,7 +225,7 @@ def process_resume():
         role="Keyword Generator",
         goal="Generate exactly four two-word, ATS-optimized keywords based on resume content, suitable for inclusion beneath the candidate's name on a resume.",
         backstory="You are an expert resume keyword analyst trained in recruiting and Applicant Tracking Systems. You extract four distinct, high-impact, two-word phrases that summarize a candidate’s professional strengths and focus areas, tailored to the job title and experience level.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -237,7 +237,7 @@ def process_resume():
         "You are an expert in crafting ATS-optimized professional summaries that present candidates with clarity, structure, and strategic positioning. "
         "Each summary must use a predefined 3-paragraph structure with consistent sentence patterns and word choice, reflecting the candidate's experience, communication strengths, and forward-looking value."  
         ),
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -258,7 +258,7 @@ def process_resume():
             "You are an expert in resume writing, specializing in turning work experience into high-impact, quantifiable bullet points. "
             "You understand resume tone, industry nuance, and how to highlight both leadership and collaborative achievements with precision. You always follow strict formatting rules."
         ),
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
@@ -268,7 +268,7 @@ def process_resume():
         role="Job Description Writer",
         goal="Craft concise, structured job experience entries with professional responsibilities and labeled achievements from resume data.",
         backstory="An expert resume editor that produces ATS-optimized job experience sections. Accurately summarizes core responsibilities in a 3-sentence paragraph and highlights up to four labeled, metric-based achievements.",
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         verbose=True,
         allow_delegation=False
     )
