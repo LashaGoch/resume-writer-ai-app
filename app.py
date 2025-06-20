@@ -3,10 +3,8 @@ from dotenv import load_dotenv
 from docx import Document
 from docxtpl import DocxTemplate
 import json
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.shared import Pt, RGBColor
 from crewai import Crew, Agent, Task
-from flask import Flask, request, render_template, send_file, Response
+from flask import Flask, request, render_template, send_file
 from markdown import markdown
 import re
 
@@ -619,11 +617,7 @@ def process_resume():
 
     # Return the template as before
     compiled_resume_html = markdown(format_resume_markdown(crew.tasks))
-    #compiled_resume_html = markdown(compiled_resume_text)
     return render_template('result.html', compiled_resume_html=compiled_resume_html)
-    # return render_template('result.html', compiled_resume_text=compiled_resume_text)
-    # Build context for the new format (replace with actual extraction logic)
-
 
 
 @app.route('/download_new_format')
