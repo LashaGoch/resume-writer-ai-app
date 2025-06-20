@@ -4,7 +4,7 @@ from docx import Document
 from docxtpl import DocxTemplate
 import json
 from crewai import Crew, Agent, Task
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, Response
 from markdown import markdown
 import re
 
@@ -618,6 +618,8 @@ def process_resume():
     # Return the template as before
     compiled_resume_html = markdown(format_resume_markdown(crew.tasks))
     return render_template('result.html', compiled_resume_html=compiled_resume_html)
+
+
 
 
 @app.route('/download_new_format')
