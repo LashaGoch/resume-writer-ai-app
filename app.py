@@ -41,7 +41,22 @@ def require_auth():
 
 def extract_text_from_docx(file):
     document = Document(file)
-    return "\n".join([para.text for para in document.paragraphs])
+    full_text = []
+
+    # Extract text from regular paragraphs
+    for para in document.paragraphs:
+        if para.text.strip():
+            full_text.append(para.text.strip())
+
+    # Extract text from tables
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                cell_text = cell.text.strip()
+                if cell_text:
+                    full_text.append(cell_text)
+
+    return "\n".join(full_text)
 
 
 def clean_json_block(text: str) -> str:
@@ -417,7 +432,9 @@ def process_resume():
                 f"Include real, measurable outcomes (no fake metrics)\n"
                 f"Avoid all pronouns, articles, adverbs, and passive voice\n"
                 f"Use direct/assertive verbs if the user led the effort; use collaborative framing if it was a team effort\n"
-                f"If 'and' is used more than twice, replace the third instance with 'as well as', 'in addition to', etc.\n\n"
+                f"If 'and' is used more than twice, replace the third instance with 'as well as', 'in addition to', etc.\n"
+                f"Do not invent metrics for achievements. Only include information explicitly stated in the resume text provided.\n" 
+                f"If the achievement does not have an outcome, you can infer (without making up metrics) what the likely outcome was.\n"
                 f"Tailor each bullet to the resume content and role."
             ),
             agent=achievement_writer,
@@ -454,6 +471,7 @@ def process_resume():
                 f"• Each bullet starts with a label verb (e.g., \"Led\", \"Drove\", \"Built\")\n"
                 f"• Text must contain a measurable result (metric, percentage, impact)\n"
                 f"• Use short, strong phrasing\n"
+                f"• Avoid repeating notable achievements that were already listed earlier\n"
             ),
             agent=experience_writer,
             expected_output=(
