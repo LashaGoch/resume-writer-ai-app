@@ -468,6 +468,7 @@ def process_resume():
                 f"• Next two sentences describe recurring responsibilities using action verbs\n"
                 f"ACHIEVEMENT RULES:\n"
                 f"• 1–4 bullets per role\n"
+                f"• Each bullet starts with a label verb (e.g., \"Led\", \"Drove\", \"Built\")\n"
                 f"• Text must contain a measurable result (metric, percentage, impact)\n"
                 f"• Use short, strong phrasing\n"
                 f"• Avoid repeating notable achievements that were already listed earlier\n"
@@ -484,7 +485,7 @@ def process_resume():
                 '      "dates": "Start Year-End Year or Present",\n'
                 '      "description": "Three-sentence responsibility paragraph here (≤50 words).",\n'
                 '      "achievements": [\n'
-                '        {"achievement with metric."},\n'
+                '        {"label": "Led", "text": "achievement with metric."},\n'
                 '        ...\n'
                 '      ]\n'
                 "    },\n"
@@ -660,4 +661,5 @@ def download_new_format():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
+
 
