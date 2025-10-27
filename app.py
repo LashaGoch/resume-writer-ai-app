@@ -164,7 +164,7 @@ def format_resume_markdown(tasks):
                 for achievement in achievements:
                     label = achievement.get('label', '')
                     text = achievement.get('text', '')
-                    markdown_text += f"- **{label}** {text}\n"
+                    markdown_text += f"- {label}{text}\n"
                 markdown_text += "\n"
             
             elif task.agent.role == "Job Description Writer":
