@@ -164,7 +164,7 @@ def format_resume_markdown(tasks):
                 for achievement in achievements:
                     label = achievement.get('label', '')
                     text = achievement.get('text', '')
-                    markdown_text += f"- **{label}:** {text}\n"
+                    markdown_text += f"- **{label}** {text}\n"
                 markdown_text += "\n"
             
             elif task.agent.role == "Job Description Writer":
@@ -238,7 +238,7 @@ def process_resume():
         role="Keyword Generator",
         goal="Generate exactly four two-word, ATS-optimized keywords based on resume content, suitable for inclusion beneath the candidate's name on a resume.",
         backstory="You are an expert resume keyword analyst trained in recruiting and Applicant Tracking Systems. You extract four distinct, high-impact, two-word phrases that summarize a candidate’s professional strengths and focus areas, tailored to the job title and experience level.",
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
@@ -250,7 +250,7 @@ def process_resume():
         "You are an expert in crafting ATS-optimized professional summaries that present candidates with clarity, structure, and strategic positioning. "
         "Each summary must use a predefined 3-paragraph structure with consistent sentence patterns and word choice, reflecting the candidate's experience, communication strengths, and forward-looking value."  
         ),
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
@@ -259,19 +259,25 @@ def process_resume():
         role="Areas of Expertise Writer",
         goal="Generate 9 expertise keywords in 3x3 format without repeating top ATS keywords in structured JSON format.",
         backstory="An expert in resume writing and applicant tracking systems. Selects precise, two-word industry phrases that reflect a candidate’s most relevant weekly-used strengths, avoiding redundancy with other keyword sections.",
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
 
     achievement_writer = Agent(
         role="Achievements Writer",
-        goal="Craft 3–5 professional achievement bullets with measurable outcomes using strong verbs and domain-specific bolded keywords.",
+        goal=(
+            "Craft 3–5 professional achievement bullets with measurable outcomes using strong verbs and domain-specific keywords. "
+            "Each achievement must include the company or organization where it occurred, as mentioned in the resume. "
+            "If no company can be determined, do not mention the company."
+        ),
         backstory=(
             "You are an expert in resume writing, specializing in turning work experience into high-impact, quantifiable bullet points. "
-            "You understand resume tone, industry nuance, and how to highlight both leadership and collaborative achievements with precision. You always follow strict formatting rules."
+            "You understand resume tone, industry nuance, and how to highlight both leadership and collaborative achievements with precision. "
+            "You only attribute achievements to companies explicitly found in the resume. "
+            "You always follow strict formatting rules."
         ),
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
@@ -279,9 +285,18 @@ def process_resume():
 
     experience_writer = Agent(
         role="Job Description Writer",
-        goal="Craft concise, structured job experience entries with professional responsibilities and labeled achievements from resume data.",
-        backstory="An expert resume editor that produces ATS-optimized job experience sections. Accurately summarizes core responsibilities in a 3-sentence paragraph and highlights up to four labeled, metric-based achievements.",
-        model="gpt-4o",
+        goal=(
+            "Craft concise, structured job experience entries with professional responsibilities and achievements from resume data. "
+            "Summarize core responsibilities and factual achievements without fabricating or repeating metrics. "
+            "If numeric results or specific outcomes are not present, describe the impact qualitatively (e.g., 'improved process efficiency')."
+        ),
+        backstory=(
+            "You are an expert resume editor who writes ATS-optimized experience sections. "
+            "You always preserve factual accuracy and avoid duplication. "
+            "You must never make up achievements, metrics, or company details. "
+            "Each description must sound professional, concise, and entirely supported by the source resume."
+        ),
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
@@ -290,7 +305,7 @@ def process_resume():
         role="Additional Experience Writer",
         goal="Return earlier work experience entries in structured JSON format.",
         backstory="Summarizes older work experience in a clean, compact structure including company, location, title, and dates.",
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
@@ -300,20 +315,66 @@ def process_resume():
         role="Education Writer",
         goal="Extract and return education entries in structured JSON format.",
         backstory="An expert in parsing and formatting educational history for professional resumes.",
-        model="gpt-4o",
+        model="gpt-4.1",
         verbose=True,
         allow_delegation=False
     )
 
-    cert_writer = Agent(
-        role="Certifications Writer",
-        goal="Extract and return certification entries in structured JSON format.",
-        backstory="Specialist in identifying and formatting certifications and credentials from resumes.",
-        model="gpt-4o",
-        verbose=True,
-        allow_delegation=False
+ #   cert_writer = Agent(
+ #       role="Certifications Writer",
+ #       goal="Extract and return certification entries in structured JSON format.",
+ #       backstory="Specialist in identifying and formatting certifications and credentials from resumes.",
+ #       model="gpt-4.1",
+ #       verbose=True,
+ #       allow_delegation=False
+ #   )
+    
+    # Run Achievements Writer first
+    achievement_task = Task(
+        description=(
+                f"Using the resume content below (delimited by < >), write 3–5 bullet points "
+                f"describing notable professional achievements.\n\n"
+                f"❗ STRICT RULES ❗\n"
+                f"- Each achievement must include the company or organization where it occurred, as mentioned in the resume. "
+                f"- If no company can be determined, do not mention the company.\n"
+                f"- Do not invent, infer, or estimate any metrics, outcomes, or achievements.\n"
+                f"- Only use information explicitly present in the resume text.\n"
+                f"- If no numeric data is provided, describe impact qualitatively (e.g., 'enhanced efficiency', 'streamlined workflow').\n"
+                f"- Each bullet must be exactly one sentence (25–35 words), impactful, and written in active voice.\n"
+                f"- Begin with a strong action verb (e.g., Spearheaded, Delivered, Improved).\n"
+                f"- Avoid pronouns, filler words, adverbs, and passive constructions.\n"
+                f"- Limit 'and' to two uses per bullet (use 'as well as' or 'in addition to' if needed).\n\n"
+                f"Resume:\n<{resume_text}>\n\n"
+                f"Tailor each bullet precisely to the resume’s content and role."
+            ),
+        agent=achievement_writer,
+        expected_output=(
+                "Return a JSON object with this structure:\n"
+                "{\n"
+                '  "notable_achievements": [\n'
+                '        {"text": "Improved lead generation by 150% across nine websites through the deployment of AI and A/B testing tools, resulting in four successful campaign implementations within six months at Ingersoll Rand."},\n'
+                '        {"text": "Led the centralization of marketing reporting across the organization by integrating six data sources into Qlik, generating insights for 33+ KPIs and enhancing decision-making for over 300 users."}\n'
+                '        {"text": "Increased prospects and customers database from 100,000 to 800,000 within one year by utilizing both external and internal channels, significantly boosting marketing outreach and engagement."}\n'
+                "  ]\n"
+                "}\n\n"
+                "Only return the JSON. Do not include commentary, headers, or formatting."
+            )
     )
- 
+
+    # Run a mini crew just for this task
+    achievement_crew = Crew(agents=[achievement_writer], tasks=[achievement_task], verbose=True)
+    achievement_result = achievement_crew.kickoff()
+    # Extract and clean the text
+    try:
+        raw = str(achievement_result)
+        cleaned = clean_json_block(raw)
+        achievement_data = json.loads(cleaned)
+        achievement_output_text = "\n".join(
+            [item["text"] for item in achievement_data.get("notable_achievements", [])]
+        )
+    except Exception as e:
+        print(f"Error parsing achievement output: {e}")
+        achievement_output_text = ""
 
     # Define tasks
     tasks = [
@@ -372,16 +433,16 @@ def process_resume():
                 f"Resume:\n<{resume_text}>"
                 f"Paragraph 1 – Experience & Impact:\n"
                 f"{{Descriptor 1}} and {{Descriptor 2}} {{Role Noun}} offering {{Years}}+ years of experience {{Action 1}}, {{Action 2}}, and {{Action 3}} in {{Industry/Function}}.\n\n"
-                f"Paragraph 2 – Communication & Influence:\n"
+                f"Paragraph 2 – Influence & Communication:\n"
                 f"{{Descriptor 1}} and {{Descriptor 2}} {{Role Noun}} skilled at {{Soft Skill A}}, {{Soft Skill B}}, and {{Outcome}} using {{Trait A}}, {{Trait B}}, and {{Trait C}}.\n\n"
                 f"Paragraph 3 – Forward Value & Mission:\n"
                 f"{{Descriptor 1}} and {{Descriptor 2}} {{Role Noun}} focused on {{Mission A}}, {{Mission B}}, and {{Mission C}} by {{How they do it}}, delivering {{Impact}}.\n\n"
                 f"Use random sampling from the following predefined lists:\n"
-                f"- Descriptors: strategic, collaborative, detail-oriented, visionary, innovative, adaptable, people-focused, entrepreneurial, composed, solutions-oriented, future-facing\n"
-                f"- Nouns (Role): leader, communicator, problem solver, collaborator, expert, strategist, business partner, relationship builder\n"
-                f"- Soft Skills / Traits: emotional intelligence, storytelling ability, cultural awareness, growth mindset, calm under pressure, adaptability, strategic insight, hands-on approach\n"
-                f"- Missions: improving access, driving sustainability, transforming service delivery\n"
-                f"- Impacts: global health, community growth, team cohesion, policy change\n\n"
+                f"- Descriptor examples: strategic, collaborative, detail-oriented, visionary, innovative, adaptable, people-focused, entrepreneurial, composed, solutions-oriented, future-facing\n"
+                f"- Nouns (Role) examples: leader, problem solver, collaborator, communicator,expert, strategist, business partner, relationship builder\n"
+                f"- Soft Skills / Traits examples: emotional intelligence, storytelling ability, cultural awareness, growth mindset, calm under pressure, adaptability, strategic insight, hands-on approach\n"
+                f"- Missions examples: improving access, driving sustainability, transforming service delivery\n"
+                f"- Impacts examples: global health, community growth, team cohesion, policy change\n\n"
                 f"Each paragraph must be exactly one sentence, 25–30 words."
             ),
             agent=summary_writer,
@@ -424,54 +485,32 @@ def process_resume():
 
         Task(
             description=(
-                f"Based on the resume content below (delimited by < >), write 3–5 bullet points describing notable professional achievements. "
-                f"Resume:\n<{resume_text}>\n\n"
-                f"Each bullet must be measurable, impactful, exactly 1 sentence, 25–35 words long.\n\n"
-                f"Start with **two bolded keywords** describing the domain/theme (e.g., **Revenue Growth:**)\n"
-                f"Begin the sentence with a strong action verb (e.g., Spearheaded, Delivered, Improved)\n"
-                f"Include real, measurable outcomes (no fake metrics)\n"
-                f"Avoid all pronouns, articles, adverbs, and passive voice\n"
-                f"Use direct/assertive verbs if the user led the effort; use collaborative framing if it was a team effort\n"
-                f"If 'and' is used more than twice, replace the third instance with 'as well as', 'in addition to', etc.\n"
-                f"Do not invent metrics for achievements. Only include information explicitly stated in the resume text provided.\n" 
-                f"If the achievement does not have an outcome, you can infer (without making up metrics) what the likely outcome was.\n"
-                f"Tailor each bullet to the resume content and role."
-            ),
-            agent=achievement_writer,
-            expected_output=(
-                "Return a JSON object with this structure:\n"
-                "{\n"
-                '  "notable_achievements": [\n'
-                '        {"label": "Lead Generation", "text": "" Improved lead generation by 150% across nine websites through the deployment of AI and A/B testing tools, resulting in four successful campaign implementations within six months."},\n'
-                '        {"label": "Reporting Centralization", "text": " Led the centralization of marketing reporting across the organization by integrating six data sources into Qlik, generating insights for 33+ KPIs and enhancing decision-making for over 300 users."}\n'
-                '        {"label": "Database Growth", "text": " Increased prospects and customers database from 100,000 to 800,000 within one year by utilizing both external and internal channels, significantly boosting marketing outreach and engagement."}\n'
-                "  ]\n"
-                "}\n\n"
-                "Only return the JSON. Do not include commentary, headers, or formatting."
-            )
-        ),
-
-        Task(
-            description=(
-                f"Use the resume below (delimited by < >) to write structured job descriptions for the 2–3 most recent roles.\n"
+                f"Use the resume below (delimited by < >) to write structured job descriptions for the 3 most recent roles.\n"
                 f"Resume:\n<{resume_text}>\n"
+                f"Notable achievements already covered by another agent are provided below. "
+                f"DO NOT repeat, rephrase, or reword any of them.\n\n"
+                f"Previously listed achievements:\n<{achievement_output_text}>\n\n"
                 f"For each role, return:\n"
                 f"• Company name\n"
                 f"• Location (City, State or Country)\n"
                 f"• Title\n"
                 f"• Dates of employment\n"
-                f"• 3-sentence paragraph (≤50 words) describing core job responsibilities ONLY — no achievements, no metrics\n"
+                f"• 3-sentence paragraph (≤50 words) describing ONLY responsibilities — factual, recurring duties, no metrics or achievements\n"
                 f"• 1–4 achievement bullet points using this structure:\n"
-                f"    {{\"label\": \"Verb\", \"text\": \"achievement text with outcome/metric\"}}\n\n"
+                f"    {{\"label\": \"Verb\", \"text\": \"achievement text with measurable or qualitative outcome\"}}\n\n"
                 f"DESCRIPTION RULES:\n"
                 f"• Begin with a high-level task summary\n"
                 f"• Next two sentences describe recurring responsibilities using action verbs\n"
                 f"ACHIEVEMENT RULES:\n"
                 f"• 1–4 bullets per role\n"
-                f"• Each bullet starts with a label verb (e.g., \"Led\", \"Drove\", \"Built\")\n"
-                f"• Text must contain a measurable result (metric, percentage, impact)\n"
+                f"• Each bullet starts with a label verb (e.g., \"Led\", \"Drove\", \"Built\", \"Oversaw\", \"Managed\")\n"
                 f"• Use short, strong phrasing\n"
-                f"• Avoid repeating notable achievements that were already listed earlier\n"
+                f"• Do NOT invent, infer, or estimate any metrics or accomplishments.\n"
+                f"• Do NOT copy or paraphrase achievements listed earlier.\n"
+                f"• If the resume lacks quantifiable results, describe the impact qualitatively.\n"
+                f"• Avoid generic filler (e.g., 'responsible for', 'various duties').\n"
+                f"• Use strong action verbs, concise phrasing, and clear structure.\n"
+                f"• Keep tone factual, not promotional.\n"
             ),
             agent=experience_writer,
             expected_output=(
@@ -485,7 +524,7 @@ def process_resume():
                 '      "dates": "Start Year-End Year or Present",\n'
                 '      "description": "Three-sentence responsibility paragraph here (≤50 words).",\n'
                 '      "achievements": [\n'
-                '        {"label": "Led", "text": "achievement with metric."},\n'
+                '        {"label": "Led", "text": "achievement with metric or qualitative outcome."},\n'
                 '        ...\n'
                 '      ]\n'
                 "    },\n"
@@ -497,7 +536,8 @@ def process_resume():
 
         Task(
             description=(
-                f"From the resume below (delimited by < >), extract earlier/older work experience entries (not among the most recent 2–3 roles). "
+                f"From the resume below (delimited by < >), extract earlier/older work experience entries (not among the most recent 3 roles). "
+                f"If resume has only 3 roles, leave this section blank. Do not make up any information. "
                 f"For each job, return:\n"
                 f"- Company name\n"
                 f"- Location (City, State)\n"
@@ -525,7 +565,7 @@ def process_resume():
 
         Task(
             description=(
-                f"From the resume below (delimited by < >), extract all education entries. "
+                f"From the resume below (delimited by < >), extract all education and all professional certifications entries. "
                 f"For each entry, return:\n"
                 f"- Institution name\n"
                 f"- Location (City, State or Online)\n"
@@ -548,39 +588,65 @@ def process_resume():
             )
         ),
 
-        Task(
-            description=(
-                f"From the resume below (delimited by < >), extract all professional certifications or credentials. "
-                f"For each entry, return:\n"
-                f"- Institution (e.g. issuing organization)\n"
-                f"- Location (e.g. Online or city)\n"
-                f"- Credential (e.g. certificate title)\n\n"
-                f"Resume:\n<{resume_text}>"
-            ),
-            agent=cert_writer,
-            expected_output=(
-                "Return a JSON object with this structure:\n\n"
-                "{\n"
-                '  "certifications": [\n'
-                "    {\n"
-                '      "institution": "Project Management Institute",\n'
-                '      "location": "Online",\n'
-                '      "credential": "Project Management Professional (PMP)"\n'
-                "    },\n"
-                "    ...\n"
-                "  ]\n"
-                "}"
-            )
-        )
+ #       Task(
+ #           description=(
+ #               f"From the resume below (delimited by < >), extract all professional certifications. "
+ #               f"Do not include Education or University degrees in this section. "
+ #               f"For each entry, return:\n"
+ #               f"- Institution (e.g. issuing organization)\n"
+ #               f"- Location (e.g. Online or city)\n"
+ #               f"- Credential (e.g. certificate title)\n\n"
+ #               f"Resume:\n<{resume_text}>"
+ #           ),
+ #           agent=cert_writer,
+ #           expected_output=(
+ #               "Return a JSON object with this structure:\n\n"
+ #               "{\n"
+ #               '  "certifications": [\n'
+ #               "    {\n"
+ #               '      "institution": "Project Management Institute",\n'
+ #               '      "location": "Online",\n'
+ #               '      "credential": "Project Management Professional (PMP)"\n'
+ #               "    },\n"
+ #               "    ...\n"
+ #               "  ]\n"
+ #               "}"
+ #           )
+ #       )
     ]
 
 
     # Run the crew
     crew = Crew(agents=[name_generator, keyword_generator, summary_writer, expertise_writer, 
-        achievement_writer, experience_writer, additional_exp_writer, education_writer, cert_writer
+        achievement_writer, experience_writer, additional_exp_writer, education_writer
     ], tasks=tasks, verbose=True)
     
     result = crew.kickoff()
+
+    # ---------------------------------------------------------------
+    # Inject the Achievements Writer task (from mini crew) into final results
+    # This ensures the "Notable Achievements" section appears in the output.
+    # ---------------------------------------------------------------
+    achievement_task.output = achievement_result  # attach mini-crew output
+    crew.tasks.insert(0, achievement_task)        # add at the top of the task list
+    # ---------------------------------------------------------------
+    # Reorder tasks so Achievements come after Areas of Expertise
+    # ---------------------------------------------------------------
+    def sort_key(task):
+        order = {
+            "Name Generator": 1,
+            "Keyword Generator": 2,
+            "Summary Writer": 3,
+            "Areas of Expertise Writer": 4,
+            "Achievements Writer": 5,          # 👈 place it right after expertise
+            "Job Description Writer": 6,
+            "Additional Experience Writer": 7,
+            "Education Writer": 8,
+            "Certifications Writer": 9
+        }
+        return order.get(getattr(task.agent, "role", ""), 99)
+
+    crew.tasks.sort(key=sort_key)
 
     compiled_resume_text = ""
     for task in crew.tasks:
