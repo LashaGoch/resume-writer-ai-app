@@ -186,8 +186,8 @@ def format_resume_markdown(tasks):
             elif task.agent.role == "Education Writer":
                 markdown_text += "## Education\n"
                 for edu in data.get('education', []):
-                    markdown_text += (f"**{edu.get('institution')}** • {edu.get('location')}\n"
-                                    f"{edu.get('credential')}\n\n")
+                    markdown_text += (f"**{edu.get('institution')}** • {edu.get('credential')}\n")
+                                 #   f"{edu.get('credential')}\n\n")
             
             elif task.agent.role == "Certifications Writer":
                 markdown_text += "## Certifications\n"
@@ -340,7 +340,7 @@ def process_resume():
                 f"- Do not invent, infer, or estimate any metrics, outcomes, or achievements.\n"
                 f"- Only use information explicitly present in the resume text.\n"
                 f"- If no numeric data is provided, describe impact qualitatively (e.g., 'enhanced efficiency', 'streamlined workflow').\n"
-                f"- Each bullet must be exactly one sentence (25–35 words), impactful, and written in active voice.\n"
+                f"- Each bullet must be exactly one sentence, no more than 30 words, impactful, and written in active voice.\n"
                 f"- Begin with a strong action verb (e.g., Spearheaded, Delivered, Improved).\n"
                 f"- Avoid pronouns, filler words, adverbs, and passive constructions.\n"
                 f"- Limit 'and' to two uses per bullet (use 'as well as' or 'in addition to' if needed).\n\n"
@@ -353,7 +353,7 @@ def process_resume():
                 "{\n"
                 '  "notable_achievements": [\n'
                 '        {"text": "Improved lead generation by 150% across nine websites through the deployment of AI and A/B testing tools, resulting in four successful campaign implementations within six months at Ingersoll Rand."},\n'
-                '        {"text": "Led the centralization of marketing reporting across the organization by integrating six data sources into Qlik, generating insights for 33+ KPIs and enhancing decision-making for over 300 users."}\n'
+                '        {"text": "Identified inefficiencies within support team workflows and proposed process improvements that increased resolution speed, reduced errors, and strengthened team performance across multiple community support functions."}\n'
                 '        {"text": "Increased prospects and customers database from 100,000 to 800,000 within one year by utilizing both external and internal channels, significantly boosting marketing outreach and engagement."}\n'
                 "  ]\n"
                 "}\n\n"
@@ -430,6 +430,8 @@ def process_resume():
                 f"Resume:\n<{resume_text}>\n\n"
                 f"Follow this structure:\n"
                 f"Each paragraph should follow a three-sentence structure.\n\n"
+                f"Tailor each paragraph to the job.\n\n"
+                f"Pick descriptor, role noun, soft skills / traits, missions, and impacts from the predefined lists below that align with their most recent job.\n\n"
                 f"Resume:\n<{resume_text}>"
                 f"Paragraph 1 – Experience & Impact:\n"
                 f"{{Descriptor 1}} and {{Descriptor 2}} {{Role Noun}} offering {{Years}}+ years of experience {{Action 1}}, {{Action 2}}, and {{Action 3}} in {{Industry/Function}}.\n\n"
@@ -440,7 +442,7 @@ def process_resume():
                 f"Use random sampling from the following predefined lists:\n"
                 f"- Descriptor examples: strategic, collaborative, detail-oriented, visionary, innovative, adaptable, people-focused, entrepreneurial, composed, solutions-oriented, future-facing\n"
                 f"- Nouns (Role) examples: leader, problem solver, collaborator, communicator,expert, strategist, business partner, relationship builder\n"
-                f"- Soft Skills / Traits examples: emotional intelligence, storytelling ability, cultural awareness, growth mindset, calm under pressure, adaptability, strategic insight, hands-on approach\n"
+                f"- Soft Skills / Traits examples: conflict resolution, storytelling ability, cultural awareness, growth mindset, calm under pressure, adaptability, strategic insight, hands-on approach\n"
                 f"- Missions examples: improving access, driving sustainability, transforming service delivery\n"
                 f"- Impacts examples: global health, community growth, team cohesion, policy change\n\n"
                 f"Each paragraph must be exactly one sentence, 25–30 words."
@@ -503,7 +505,7 @@ def process_resume():
                 f"• Next two sentences describe recurring responsibilities using action verbs\n"
                 f"ACHIEVEMENT RULES:\n"
                 f"• 1–4 bullets per role\n"
-                f"• Each bullet starts with a label verb (e.g., \"Led\", \"Drove\", \"Built\", \"Oversaw\", \"Managed\")\n"
+                f"• Each bullet starts with a label verb (e.g., \"Led\", \"Supervised\", \"Directed\", \"Oversaw\", \"Managed\", \"Orchestrated\", \"Held full accountability\", \"Delivered\",  \"Drove\" )\n"
                 f"• Use short, strong phrasing\n"
                 f"• Do NOT invent, infer, or estimate any metrics or accomplishments.\n"
                 f"• Do NOT copy or paraphrase achievements listed earlier.\n"
@@ -568,7 +570,6 @@ def process_resume():
                 f"From the resume below (delimited by < >), extract all education and all professional certifications entries. "
                 f"For each entry, return:\n"
                 f"- Institution name\n"
-                f"- Location (City, State or Online)\n"
                 f"- Credential (e.g. degree, diploma)\n\n"
                 f"Resume:\n<{resume_text}>"
             ),
@@ -579,7 +580,6 @@ def process_resume():
                 '  "education": [\n'
                 "    {\n"
                 '      "institution": "Harvard University",\n'
-                '      "location": "Cambridge, MA",\n'
                 '      "credential": "Master of Business Administration"\n'
                 "    },\n"
                 "    ...\n"
