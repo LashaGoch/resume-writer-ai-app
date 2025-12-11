@@ -6,3 +6,4 @@ python-dotenv
 openai
 markdown
 docxtpl
+PyPDF2
