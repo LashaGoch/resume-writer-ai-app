@@ -2,6 +2,10 @@ import os
 from dotenv import load_dotenv
 from docx import Document
 from docxtpl import DocxTemplate
+try:
+    from PyPDF2 import PdfReader
+except Exception:
+    PdfReader = None
 import json
 from crewai import Crew, Agent, Task
 from flask import Flask, request, render_template, send_file, Response
@@ -13,10 +17,6 @@ import re
 load_dotenv()
 
 app = Flask(__name__)
-
-# Authentication credentials
-#USERNAME = "canary"
-#PASSWORD = "resume2025"
 
 # Load credentials from .env
 USERNAME = os.getenv('AUTH_USERNAME')
@@ -61,6 +61,28 @@ def extract_text_from_docx(file):
                     full_text.append(cell_text)
 
     return "\n".join(full_text)
+
+
+def extract_text_from_pdf(file):
+    """Extract text from a PDF file-like object using PyPDF2."""
+    if PdfReader is None:
+        raise RuntimeError("PyPDF2 is not installed. Please add PyPDF2 to requirements.txt and reinstall.")
+
+    # PdfReader accepts a file-like object
+    try:
+        reader = PdfReader(file)
+        pages = []
+        for page in reader.pages:
+            try:
+                text = page.extract_text() or ""
+                if text.strip():
+                    pages.append(text.strip())
+            except Exception:
+                # skip problematic pages
+                continue
+        return "\n\n".join(pages)
+    except Exception as e:
+        raise RuntimeError(f"Failed to read PDF: {e}")
 
 
 def clean_json_block(text: str) -> str:
@@ -217,8 +239,17 @@ def process_resume():
     if not uploaded_file:
         return "No file uploaded", 400
 
-    # Extract text from uploaded resume
-    resume_text = extract_text_from_docx(uploaded_file)
+    # Extract text from uploaded resume (support DOCX and PDF)
+    filename = (uploaded_file.filename or "").lower()
+    try:
+        if filename.endswith('.pdf'):
+            # use stream for PdfReader
+            resume_text = extract_text_from_pdf(uploaded_file.stream)
+        else:
+            # assume docx for other uploads
+            resume_text = extract_text_from_docx(uploaded_file)
+    except Exception as e:
+        return f"Failed to extract text from uploaded file: {e}", 400
         
     # Initialize OpenAI key (needed internally by CrewAI)
     openai_api_key = os.getenv('OPENAI_API_KEY')
