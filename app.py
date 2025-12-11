@@ -15,8 +15,12 @@ load_dotenv()
 app = Flask(__name__)
 
 # Authentication credentials
-USERNAME = "canary"
-PASSWORD = "resume2025"
+#USERNAME = "canary"
+#PASSWORD = "resume2025"
+
+# Load credentials from .env
+USERNAME = os.getenv('AUTH_USERNAME')
+PASSWORD = os.getenv('AUTH_PASSWORD')
 
 # Authentication function
 def check_auth(username, password):
